@@ -1,0 +1,13 @@
+name: PMSmoke_Attention_Dashboard
+title: PMSmoke_Attention_Dashboard
+username:
+account: stephcleland
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4543677
+bundleId: 4972628
+url: https://stephcleland.shinyapps.io/PMSmoke_Attention_Dashboard/
+when: 1630088270.13546
+lastSyncTime: 1630088270.13546
+asMultiple: FALSE
+asStatic: FALSE
