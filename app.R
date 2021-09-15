@@ -434,7 +434,12 @@ server <- function(input, output,session) {
   })
   
   output$primary_text <- renderText({
-    
+    if (input$subgroup == "Habit") {
+      subgroup <- "habitual behavior"
+    } else {
+      subgroup <- input$subgroup
+    }
+
     if (input$region == "Contiguous" & input$exposure == "Smoke") {
       paste("Smoke results for the contiguous US are unavailable")
     } else {
@@ -443,51 +448,61 @@ server <- function(input, output,session) {
         if (input$subgroup=="All") {
           paste("<b>Figure.</b>","Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for all", tolower(input$region), "US users.")
         } else {
-          paste("<b>Figure.</b>","Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for", tolower(input$region),"US users by", tolower(input$subgroup))
+          paste("<b>Figure.</b>","Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for", tolower(input$region),"US users by", tolower(subgroup))
         }  
       } else {
         exposure_text = input$exposure
         if (input$subgroup=="All") {
           paste("<b>Figure.</b>","Change in attention score per 10 ug/m3 change in PM2.5 for all", tolower(input$region), "US users.")
         } else {
-          paste("<b>Figure.</b>","Change in attention score per 10 ug/m3 change in PM2.5 for", tolower(input$region),"US users by", tolower(input$subgroup))
+          paste("<b>Figure.</b>","Change in attention score per 10 ug/m3 change in PM2.5 for", tolower(input$region),"US users by", tolower(subgroup))
         }  
       } 
     }
   })
   
   output$daily_text <- renderText({
+    if (input$subgroup == "Habit") {
+      subgroup <- "habitual behavior"
+    } else {
+      subgroup <- input$subgroup
+    }
     if (input$exposure == "Smoke") {
       exposure_text = tolower(input$exposure)
       if (input$subgroup=="All") {
         paste("<b>Figure.</b>","Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for all", tolower(input$region), "US users.")
       } else {
-        paste("<b>Figure.</b>","Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for", tolower(input$region),"US users by", tolower(input$subgroup))
+        paste("<b>Figure.</b>","Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for", tolower(input$region),"US users by", tolower(subgroup))
       }  
     } else {
       exposure_text = input$exposure
       if (input$subgroup=="All") {
         paste("<b>Figure.</b>","Change in attention score per 10 ug/m3 change in PM2.5 for all", tolower(input$region), "US users.")
       } else {
-        paste("<b>Figure.</b>","Change in attention score per 10 ug/m3 change in PM2.5 for", tolower(input$region),"US users by", tolower(input$subgroup))
+        paste("<b>Figure.</b>","Change in attention score per 10 ug/m3 change in PM2.5 for", tolower(input$region),"US users by", tolower(subgroup))
       }  
     } 
   })
   
   output$hourly_text <- renderText({
+    if (input$subgroup == "Habit") {
+      subgroup <- "habitual behavior"
+    } else {
+      subgroup <- input$subgroup
+    }
     if (input$exposure == "Smoke") {
       exposure_text = tolower(input$exposure)
       if (input$subgroup=="All") {
         paste("<b>Figure.</b>","Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for all", tolower(input$region), "US users.")
       } else {
-        paste("<b>Figure.</b>","Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for", tolower(input$region),"US users by", tolower(input$subgroup))
+        paste("<b>Figure.</b>","Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for", tolower(input$region),"US users by", tolower(subgroup))
       }  
     } else {
       exposure_text = input$exposure
       if (input$subgroup=="All") {
         paste("<b>Figure.</b>","Change in attention score per 10 ug/m3 change in PM2.5 for all", tolower(input$region), "US users.")
       } else {
-        paste("<b>Figure.</b>","Change in attention score per 10 ug/m3 change in PM2.5 for", tolower(input$region),"US users by", tolower(input$subgroup))
+        paste("<b>Figure.</b>","Change in attention score per 10 ug/m3 change in PM2.5 for", tolower(input$region),"US users by", tolower(subgroup))
       }  
     } 
   })
@@ -1125,10 +1140,12 @@ server <- function(input, output,session) {
   
   output$exposure_text <- renderText({
     if (input$exposure_exp == "PM2.5") {
-      paste("<b>Figure.</b>","Daily average ZIP3-level population-weighted PM2.5 on", input$dates_exp)
+      paste("<b>Figure.</b>","Daily average ZIP3-level population-weighted PM2.5 on", input$dates_exp,".",
+            "<br><br>The ZIP3-level daily and hourly average population-weighted PM2.5 exposure data can be downloaded <a href='' target='_blank'>here</a>.")
       
     } else {
-      paste("<b>Figure.</b>","Maximum daily ZIP3-level smoke density on", input$dates_exp)
+      paste("<b>Figure.</b>","Maximum daily ZIP3-level smoke density on", input$dates_exp,".",
+            "<br><br>The ZIP3-level daily maximum smoke density exposure data can be downloaded <a href='' target='_blank'>here</a>.")
     }
     
   })
@@ -1151,8 +1168,9 @@ server <- function(input, output,session) {
   output$exposure_text2 <- renderText({
     if (input$exposure_exp == "PM2.5") {
       paste0("<b>Figure.</b>"," Daily average PM2.5 on ", input$dates_exp,", estimated through the BME data fusion of observations from",
-             "<a href='https://www.epa.gov/aqs'>FRM/FEM</a> and <a href='https://api.purpleair.com/' target='blank'>PurpleAir</a> monitors")
-      
+             "<a href='https://www.epa.gov/aqs'>FRM/FEM</a> and <a href='https://api.purpleair.com/' target='blank'>PurpleAir</a> monitors.",
+             "<br><br>The BME data fusion estimates of daily and hourly average PM2.5 at the census tract population centers can be downloaded <a href='https://doi.org/10.15139/S3/Z9WSWC' target='_blank'>here</a>.")
+  
     } else {
       paste0("<b>Figure.</b>"," Smoke density on ", input$dates_exp,", from NOAA's <a href='https://www.ospo.noaa.gov/Products/land/hms.html' target='_blank'>Hazard Mapping System Fire and Smoke product</a>")
     }
@@ -1217,24 +1235,39 @@ server <- function(input, output,session) {
   
   output$lumosity_text <- renderText({
     if(input$tabset_lum == "Learning Curve"){
+      if (input$subgroup_lum == "Habit") {
+        subgroup_lum <- "habitual behavior"
+      } else {
+        subgroup_lum <- input$subgroup_lum
+      }
+      if (input$subgroup_lum2 == "Habit") {
+        subgroup_lum2 <- "habitual behavior"
+      } else {
+        subgroup_lum2 <- input$subgroup_lum2
+      }
       if (input$subgroup_lum == "All" & input$subgroup_lum2 == "None") {
         paste("<b>Figure.</b> Average learning curve for all",tolower(input$region_lum),"US users")
       } else if (input$subgroup_lum == input$subgroup_lum2 || 
                  (input$subgroup_lum == "All" || input$subgroup_lum2 == "None")) {
         if (input$subgroup_lum != "All") {
-          paste("<b>Figure.</b> Average learning curve for",tolower(input$region_lum),"US users by", tolower(input$subgroup_lum))
+          paste("<b>Figure.</b> Average learning curve for",tolower(input$region_lum),"US users by", tolower(subgroup_lum))
         } else {
-          paste("<b>Figure.</b> Average learning curve for",tolower(input$region_lum),"US users by", tolower(input$subgroup_lum2))
+          paste("<b>Figure.</b> Average learning curve for",tolower(input$region_lum),"US users by", tolower(subgroup_lum2))
         }
       } else {
-        paste("<b>Figure.</b> Average learning curve for",tolower(input$region_lum),"US users by", tolower(input$subgroup_lum),
-              "and",tolower(input$subgroup_lum2))
+        paste("<b>Figure.</b> Average learning curve for",tolower(input$region_lum),"US users by", tolower(subgroup_lum),
+              "and",tolower(subgroup_lum2))
       }
     }
   })
   
   output$lumosity_tab <- renderText({
     if(input$tabset_lum == "Characteristics Table"){
+      if (input$subgroup_lum == "Habit") {
+        subgroup_lum <- "habitual behavior"
+      } else {
+        subgroup_lum <- input$subgroup_lum
+      }
       if (input$subgroup_lum == "All") {
         if (input$region_lum == 'Western') {
           other_region = 'contiguous'
@@ -1243,7 +1276,7 @@ server <- function(input, output,session) {
         }
         paste("<b>Table.</b> User characteristics of the",tolower(input$region_lum),"and",other_region,"US study populations")
       } else {
-        paste("<b>Table.</b> User characteristics of the",tolower(input$region_lum),"US study population by", tolower(input$subgroup_lum))
+        paste("<b>Table.</b> User characteristics of the",tolower(input$region_lum),"US study population by", tolower(subgroup_lum))
         
       }
     }
@@ -1342,7 +1375,9 @@ server <- function(input, output,session) {
     paste("This dashboard serves as supporting information for the manuscript <b><i>The Effects of Short-Term PM2.5 and Wildfire Smoke Exposure on Cognitive Performance in US Adults.</i></b>",
           " It allows users to interact with the findings from both the primary and sensitivity analyses (Primary Results and Sensitivity Analyses tabs, respectively) as well as the exposure surfaces and Lumosity user data",
           " used to generate the results (Exposure Surfaces and Lumosity User Data tabs, respectively). <br><br>",
-          "The source code for the dashboard can be found <a href='https://github.com/stephcleland/PMLumosityDashboard' target='_blank'>here</a>. <br><br>",
+          "The source code for the dashboard can be viewed <a href='https://github.com/stephcleland/PMLumosityDashboard' target='_blank'>here</a>. <br><br>",
+          "The BME data fusion estimates of daily and hourly average PM2.5 at census tract population centers can be downloaded <a href='https://doi.org/10.15139/S3/Z9WSWC' target='_blank'>here</a>. <br><br> ",
+          "The ZIP3-level daily maximum smoke density and daily and hourly average population-weighted PM2.5 exposure data can be downloaded <a href='' target='_blank'>here</a>. <br><br>",
           "For any questions, please email: <a href = 'mailto: cleland.stephanie@epa.gov'>cleland.stephanie@epa.gov</a><br><br>",
           "<b>Abstract</b><br>",
           "There is increasing evidence that exposure to air pollution adversely impacts cognitive performance. While fine particulate matter (PM2.5) and wildfire smoke are pollutants of growing concern, there is limited research on how short-term exposure affects cognitive function. We aimed to evaluate the cognitive effects of daily and sub-daily PM2.5 and smoke exposure. Cognitive performance data from a brain training platform was obtained for 10,288 contiguous United States (US) adults, age 18+, who completed 20 plays of a game targeted to improve attention. We considered two measures of daily and sub-daily exposure: (1) daily and hourly PM2.5 estimates, obtained from a data fusion of observations from US Environmental Protection Agency and PurpleAir monitors, and (2) daily smoke density, obtained from satellite images of smoke plumes. We used a retrospective longitudinal repeated measures design with linear mixed effects models to test for associations between short-term exposure metrics and cognitive performance, overall and by age group, gender, habit, and region. Smoke analyses were only conducted in the western US. All measures of daily and sub-daily PM2.5 exposure were negatively associated with attention. A 10 ug/m3 increase in PM2.5 the day of gameplay was associated with 44.28 (95% CI: -84.27, -4.28) point decrease in score in the western US, with an estimated 6.5% reduction in final score attributable to exposure. The effects were most pronounced in western US users, habitual players, and younger (18-29) and older (70+) adults, with no observed differences by gender. The presence of medium and heavy smoke density in the days and weeks prior to play were also negatively associated with performance. Heavy smoke density the day before gameplay was associated with a 119.30 (95% CI: -212.24, -26.36) point decrease in score relative to no smoke. Younger users (18-29), habitual players, and men were most affected. Overall, our results indicate that short-term exposure to PM2.5 and wildfire smoke adversely impacts attention in adults, but further research is needed to elucidate these relationships.",
