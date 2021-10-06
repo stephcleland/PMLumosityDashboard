@@ -15,12 +15,10 @@ cols <- c("Beta","Lower","Upper","# Users","P-Value")
 primary[, (cols) := lapply(.SD, as.numeric), .SDcols = cols]
 sapply(primary, class)
 primary$Group = factor(primary$Group,levels=c("All","18-29","30-39","40-49","50-59","60-69","70+",
-                                              "Male","Female","Habitual","Non-habitual",
-                                              "Android","iPhone","iPad","Web"))
+                                              "Male","Female","Habitual","Non-habitual"))
 primary_palette <- data.frame("Group" = levels(primary$Group), "Color" = c("black","#CCBB44","#7AD151FF",
                                                                            "#22A884FF","#2A788EFF","#414487FF","#471164FF",
-                                                                           "#00A7E1","#F17720","#D54799","#009F75",
-                                                                           "#5385BC","#99DDFF","#BBCC33","#44BB99"))
+                                                                           "#00A7E1","#F17720","#D54799","#009F75"))
 
 
 # Data for sensitivity results
@@ -126,7 +124,6 @@ body <-  dashboardBody(
                                "# of Lags" = "Lags",
                                "Non-Linear Relationship" = "Spline",
                                "Definition of Habitual User" = "Habit",
-                               #"User Inclusion Criteria (All Sub-Daily Users)" = "AllUsers",
                                "User Inclusion Criteria (# Unique Dates)" = "UserDefDate",
                                "User Inclusion Criteria (# Plays)" = "UserDefPlay"
                              )),
@@ -683,36 +680,33 @@ server <- function(input, output,session) {
             shape_reg=16
           }
           
-          if (input$analyses_sens == "AllUsers") {
-            plot_data <- plot_data[ExposureDuration %in% c("3-Hour Max","6-Hour Max","12-Hour Max"),]
-            plot_data$ExposureDuration = factor(plot_data$ExposureDuration,levels=c("3-Hour Max","6-Hour Max", "12-Hour Max"))        
-          } else {
-            plot_data <- plot_data[ExposureDuration %in% c("3-Hour Max","12-Hour Max","Lag 0","7-Day Cumulative"),]
-            plot_data$ExposureDuration = factor(plot_data$ExposureDuration,levels=c("3-Hour Max","12-Hour Max","Lag 0","7-Day Cumulative"))
-            
-            if (input$analyses_sens == "Lags") {
-              plot_data <- plot_data[SpecificAnalysis != "lags7",]
-              plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("lags1","lags2","lags3","lags4","lags5","lags6"))
-            }
-            if (input$analyses_sens == "UserDefDate") {
-              plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("5dates","10dates","15dates"))
-            }
-            if (input$analyses_sens == "UserDefPlay") {
-              if (input$region_sens == "Contiguous") {
-                plot_data <- plot_data[plot_data$SpecificAnalysis!="5plays",]
-                plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("6plays","10plays","15plays"))
-              } else {
-                plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("5plays","10plays","15plays"))
-              }
-            }
-            if (input$analyses_sens == "Habit") {
-              plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("7days_2hours",
-                                                                                      "7days_3hours",
-                                                                                      "7days_4hours",
-                                                                                      '14days_2hours'))
-            }
-            
+          
+          plot_data <- plot_data[ExposureDuration %in% c("3-Hour Max","12-Hour Max","Lag 0","7-Day Cumulative"),]
+          plot_data$ExposureDuration = factor(plot_data$ExposureDuration,levels=c("3-Hour Max","12-Hour Max","Lag 0","7-Day Cumulative"))
+          
+          if (input$analyses_sens == "Lags") {
+            plot_data <- plot_data[SpecificAnalysis != "lags7",]
+            plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("lags1","lags2","lags3","lags4","lags5","lags6"))
           }
+          if (input$analyses_sens == "UserDefDate") {
+            plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("5dates","10dates","15dates"))
+          }
+          if (input$analyses_sens == "UserDefPlay") {
+            if (input$region_sens == "Contiguous") {
+              plot_data <- plot_data[plot_data$SpecificAnalysis!="5plays",]
+              plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("6plays","10plays","15plays"))
+            } else {
+              plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("5plays","10plays","15plays"))
+            }
+          }
+          if (input$analyses_sens == "Habit") {
+            plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("7days_2hours",
+                                                                                    "7days_3hours",
+                                                                                    "7days_4hours",
+                                                                                    '14days_2hours'))
+          }
+          
+          
           
           if (input$analyses_sens == "Habit") {
             plot_data[Sensitivity == "HabitDefHabitual",]$Sensitivity <- "Habitual"
@@ -729,10 +723,7 @@ server <- function(input, output,session) {
             
           } else {
             compare_data <- primary[GroupType=="All"&Exposure==input$exposure_sens&Region==input$region_sens,]
-            if (input$analyses_sens == "AllUsers") {
-              compare_data <- compare_data[ExposureDuration %in% c("3-Hour Max","6-Hour Max","12-Hour Max"),]
-              compare_data$ExposureDuration = factor(compare_data$ExposureDuration,levels=c("12-Hour Max","6-Hour Max", "3-Hour Max"))        
-            } else if (input$analyses_sens == "Lags" || input$analyses_sens == "Learning") {
+            if (input$analyses_sens == "Lags") {
               compare_data <- compare_data[ExposureDuration %in% c("Lag 0","7-Day Cumulative"),]
               compare_data$ExposureDuration = factor(compare_data$ExposureDuration,levels=c("7-Day Cumulative","Lag 0"))        
             } else {
@@ -754,10 +745,7 @@ server <- function(input, output,session) {
           
           if (input$analyses_sens == "ScorePctile") {
             plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("Score Pctile","All"),labels=c("Percentile Score","Raw Score"))
-          } else if (input$analyses_sens == "Learning"){
-            plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("Learning","Score","All"))
-            plot_data$Sensitivity = factor(plot_data$Sensitivity,levels=c("Learning","Primary Result"),labels = c("Model with PM-Nth Play Interaction","Model w/o PM-Nth Play Interaction"))
-          }
+          } 
           
           
           plot <- ggplot(data=plot_data,
@@ -772,10 +760,7 @@ server <- function(input, output,session) {
                    panel.grid.major.y = element_line(size=.1, color="grey90" ),
                    panel.grid.minor.x = element_blank())
           
-          if (input$analyses_sens == "AllUsers") {
-            plot + scale_color_manual(name = "User Type", labels = c("All Hourly Users", "All Daily Users"),
-                                      values = c("#BB5566","black"))
-          } else if (input$analyses_sens == "Habit") {
+          if (input$analyses_sens == "Habit") {
             ggplot(data=plot_data,
                    aes(x=ExposureDuration,y=Beta,ymin=Lower,ymax=Upper,
                        col=SpecificAnalysis,group=SpecificAnalysis,alpha=Sensitivity,shape=Sensitivity)) +
@@ -823,18 +808,6 @@ server <- function(input, output,session) {
                 panel.grid.minor.x = element_blank(),
                 axis.text.x=element_text(angle=30,hjust=1)
               )
-          } else if (input$analyses_sens == "Learning") {
-            plot + facet_wrap(.~Sensitivity, scales="free") + 
-              theme(
-                strip.placement = "outside",                    
-                strip.background = element_rect(fill = "white",color="black"),
-                strip.text.y.left = element_text(size = 12,angle=0),
-                panel.grid.major.x = element_blank() ,
-                panel.grid.major.y = element_line(size=.1, color="grey90" ),
-                panel.grid.minor.x = element_blank()) + 
-              scale_color_manual(name = "Metric", labels = c("Change in Learning", "Change in Score","Change in Score"),
-                                 values = c("#762A83","#1B7837","black")) + 
-              ylab(expression("Change per 10" ~ mu *"g/m"^3 * " PM"[2.5])) 
           } else {
             plot
           }
@@ -1007,9 +980,7 @@ server <- function(input, output,session) {
       
       if (input$exposure_sens == "PM2.5") {
         cols <- c("Exposure","Analysis","Region","Exposure Duration","Beta","95% CI","P-Value","# Users")
-        if (input$analyses_sens == "AllUsers") {
-          table_data <- table_data[ExposureDuration %in% c("3-Hour Max","6-Hour Max","12-Hour Max"),]
-        } else if (input$analyses_sens == "Habit") {
+        if (input$analyses_sens == "Habit") {
           cols <- c("Exposure","Analysis","Habitual Definition","Region","Exposure Duration","Beta","95% CI","P-Value","# Users")
           
         } else {
@@ -1019,13 +990,9 @@ server <- function(input, output,session) {
             table_data <- table_data[SpecificAnalysis != "lags7",]
           }
         }
-        if (input$analyses_sens == "AllUsers") {
-          compare_data <- compare_data[ExposureDuration %in% c("3-Hour Max","6-Hour Max","12-Hour Max"),]
-        } else if (input$analyses_sens == "Lags" || input$analyses_sens == "Learning") {
-          compare_data <- compare_data[ExposureDuration %in% c("Lag 0","7-Day Cumulative"),]
-        } else {
-          compare_data <- compare_data[ExposureDuration %in% c("3-Hour Max","12-Hour Max","Lag 0","7-Day Cumulative"),]
-        }
+        
+        compare_data <- compare_data[ExposureDuration %in% c("3-Hour Max","12-Hour Max","Lag 0","7-Day Cumulative"),]
+        
         
       } else {
         if (input$analyses_sens == "Habit") {
@@ -1054,12 +1021,7 @@ server <- function(input, output,session) {
         table_data[Analysis=="Sensitivity"]$SpecificAnalysis <- rep("Percentile Score",nrow(table_data[Analysis=="Sensitivity",]))
         names(table_data)[names(table_data) == "SpecificAnalysis"] <- "Score Type"
         cols <- c(cols[1:2],"Score Type",cols[3:length(cols)])
-      } else if (input$analyses_sens == "AllUsers") {
-        table_data[Analysis=="Primary"]$SpecificAnalysis <- rep("All Daily Users",nrow(table_data[Analysis=="Primary",]))
-        table_data[Analysis=="Sensitivity"]$SpecificAnalysis <- rep("All Hourly Users",nrow(table_data[Analysis=="Sensitivity",]))
-        names(table_data)[names(table_data) == "SpecificAnalysis"] <- "User Definition"
-        cols <- c(cols[1:2],"User Definition",cols[3:length(cols)])
-      } else if (input$analyses_sens == "UserDefDate") {
+      }  else if (input$analyses_sens == "UserDefDate") {
         table_data <- table_data[SpecificAnalysis!="1dates",]
         table_data[Analysis=="Primary"]$SpecificAnalysis <- rep("20 Dates",nrow(table_data[Analysis=="Primary",]))
         table_data[Analysis=="Sensitivity"&SpecificAnalysis=="5dates"]$SpecificAnalysis <- rep("5+ Dates",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="5dates",]))
@@ -1092,10 +1054,6 @@ server <- function(input, output,session) {
         table_data[Analysis=="Sensitivity"&SpecificAnalysis=="lags6"]$SpecificAnalysis <- rep("6 Lags",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="lags6",]))
         names(table_data)[names(table_data) == "SpecificAnalysis"] <- "# of Lags"
         cols <- c(cols[1:2],"# of Lags",cols[3:length(cols)])
-      } else if (input$analyses_sens == "Learning") {
-        table_data[Analysis=="Primary"]$SpecificAnalysis <- rep("Change in Score (No PM-Nth Play Interaction)",nrow(table_data[Analysis=="Primary",]))
-        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="Score"]$SpecificAnalysis <- rep("Change in Score (PM-Nth Play Interaction)",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="Score",]))
-        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="Learning"]$SpecificAnalysis <- rep("Change in Learning (PM-Nth Play Interaction)",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="Learning",]))
       } else if (input$analyses_sens == "Habit") {
         table_data[SpecificAnalysis=="14days_2hours"]$SpecificAnalysis <- rep("14 Days, 2 hours",nrow(table_data[SpecificAnalysis=="14days_2hours",]))
         table_data[SpecificAnalysis=="7days_4hours"]$SpecificAnalysis <- rep("7 Days, 4 hours",nrow(table_data[SpecificAnalysis=="7days_4hours",]))
@@ -1408,7 +1366,7 @@ server <- function(input, output,session) {
       
     }
     
-    rownames(table_data)[rownames(table_data) == "Lumosity Score, mean (SD)"] <- "Lost in Migration Score, mean (SD)"
+    rownames(table_data)[rownames(table_data) == "<i>Lumosity Score, mean (SD)</i>"] <- "<i>Lost in Migration Score, mean (SD)</i>"
     
     rownames(table_data) <- gsub(' ', '&nbsp', rownames(table_data))
     
@@ -1434,7 +1392,7 @@ server <- function(input, output,session) {
           "<br><i>Results.</i> All measures of daily and sub-daily PM<sub>2.5</sub> exposure were negatively associated with attention score. A 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> the day of gameplay was associated with a 26.4 [-47.9, -4.9] point decrease in score, with an estimated average 4% reduction in final score associated with exposure. The effects were most pronounced in the western US and in habitual, younger (18-29), and older (70+) users, with no observed differences by gender. The presence of medium and heavy smoke density in the days and weeks prior to play were also negatively associated with score. Heavy smoke density the week prior to gameplay was associated with a 119.3 [-212.2, -26.4] point decrease in score relative to no smoke. Younger (18-29), habitual, and male users were most affected.", 
           "<br><i>Discussion.</i> Our results indicate that short-term exposure to PM<sub>2.5</sub> and wildfire smoke adversely impacts attention in adults, but further research is needed to elucidate these relationships.",
           "<br><br>",
-          "<b>Authors:</b> Stephanie E. Cleland, Lauren H. Wyatt, Linda Wei, Naman Paul, Amrita Patil, Marc L. Serre, J. Jason West, Sarah B. Henderson, Ana G. Rappold")
+          "<b>Authors:</b> Stephanie E. Cleland, Lauren H. Wyatt, Linda Wei, Naman Paul, Marc L. Serre, J. Jason West, Sarah B. Henderson, Ana G. Rappold")
   })
   
 }
