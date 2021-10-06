@@ -140,7 +140,7 @@ body <-  dashboardBody(
             ),
             fluidRow(
               box(
-                id = "sens_table",title = "Table of Results", width = 12, status = "primary",
+                id = "sens_table",title = textOutput('sens_table_title'), width = 12, status = "primary",
                 solidHeader = TRUE, 
                 div(style = "height:500px; overflow-y: scroll;overflow-x: scroll;", 
                     DT::dataTableOutput('sensitivity_table'))
@@ -337,7 +337,8 @@ server <- function(input, output,session) {
                 panel.grid.major.x = element_blank() ,
                 panel.grid.major.y = element_line(size=.1, color="grey90" ),
                 panel.grid.minor.x = element_blank(),
-                axis.title.y = element_text(size = 12)) + 
+                axis.title.y = element_text(size = 12),
+                axis.text.x=element_text(angle=30,hjust=1)) + 
           ylab('Change in Score Relative to No Smoke')+
           xlab("")
       }
@@ -609,6 +610,14 @@ server <- function(input, output,session) {
     paste("<i>Note:</i> Results for smoke exposure are only available for the western US. For the 'non-linear relationship' and '# of lags' sensitivity analyses, results are only available for PM<sub>2.5</sub>.")
   })
   
+  output$sens_table_title <- renderText({
+    if (input$analyses_sens == "Spline") {
+      ""
+    } else {
+      "Table of Results"
+    }
+  })
+  
   output$sensitivity_text <- renderText({
     if (input$exposure_sens == "Smoke") {
       exposure_text = tolower(input$exposure_sens)
@@ -843,7 +852,8 @@ server <- function(input, output,session) {
       } else { # SMOKE
         plot_data$ExposureLevel = factor(plot_data$ExposureLevel, levels=c('Light','Medium','Heavy'))
         plot_data$ExposureDuration = factor(plot_data$ExposureDuration,levels=c("Lag 0","Lag 1","1-Week Max", "2-Week Max"))
-        #levels(plot_data$ExposureDuration) <- c("Lag 0","Lag 1","1-Week","2-Week")
+        levels(plot_data$ExposureDuration) <- c("Lag 0","Lag 1","1-Week","2-Week")
+        
         if (input$analyses_sens == "UserDefDate") {
           plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("5dates","10dates","15dates"))
         } else if (input$analyses_sens == "UserDefPlay") {
@@ -878,6 +888,7 @@ server <- function(input, output,session) {
           compare_data$GroupType <- rep("Primary Result",nrow(compare_data))
           compare_data$Group <- rep("All",nrow(compare_data))
           
+          
           compare_data <- compare_data %>% 
             rename(
               Sensitivity = GroupType,
@@ -885,6 +896,8 @@ server <- function(input, output,session) {
             )
         }
         
+        compare_data$ExposureDuration = factor(compare_data$ExposureDuration,levels=c("Lag 0","Lag 1","1-Week Max", "2-Week Max"))
+        levels(compare_data$ExposureDuration) <- c("Lag 0","Lag 1","1-Week","2-Week")
         
         plot_data <- rbind(plot_data,compare_data)
         
