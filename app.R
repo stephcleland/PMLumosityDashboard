@@ -15,10 +15,12 @@ cols <- c("Beta","Lower","Upper","# Users","P-Value")
 primary[, (cols) := lapply(.SD, as.numeric), .SDcols = cols]
 sapply(primary, class)
 primary$Group = factor(primary$Group,levels=c("All","18-29","30-39","40-49","50-59","60-69","70+",
-                                              "Male","Female","Habitual","Non-habitual"))
+                                              "Male","Female","Habitual","Non-habitual",
+                                              "Android","iPhone","iPad","Web"))
 primary_palette <- data.frame("Group" = levels(primary$Group), "Color" = c("black","#CCBB44","#7AD151FF",
                                                                            "#22A884FF","#2A788EFF","#414487FF","#471164FF",
-                                                                           "#00A7E1","#F17720","#D54799","#009F75"))
+                                                                           "#00A7E1","#F17720","#D54799","#009F75",
+                                                                           "#5385BC","#99DDFF","#BBCC33","#44BB99"))
 
 
 # Data for sensitivity results
