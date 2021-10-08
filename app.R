@@ -630,7 +630,7 @@ server <- function(input, output,session) {
     if (input$analyses_sens == "UserDefDate") {
       text_part2 <- paste("to the user inclusion criteria.<br><br>",
                           "The primary analyses were restricted to users who completed 20 plays across 20 unique dates.",
-                          "This sensitivity analysis evaluated the impact of relaxing the user inclusion criteria to include users who completed 20 plays on less than 20 unique dates.",
+                          "This sensitivity analysis evaluated the impact of relaxing the user inclusion criteria to include users who completed 20 plays across less than 20 unique dates (e.g., users who completed 20 plays across 15+ unique dates).",
                           "To allow for comparison, we only included a users first play on any given date (e.g., if play 4-6 occurred on one date, only play 4 is included in the analysis).",
                           "As shown, relaxing the user inclusion criteria results in a slight attenutation of the observed effects."
       )
@@ -639,7 +639,7 @@ server <- function(input, output,session) {
                           "The primary analyses were restricted to users who completed 20 plays across 20 unique dates.",
                           "This sensitivity analysis evaluated the impact of relaxing the user inclusion criteria to include users who completed less than 20 plays.",
                           "To allow for comparison, users still must have played each game across unique dates (e.g., a user with 18 plays must have completed the plays across 18 unique dates).",
-                          "As shown, relaxing the user inclusion criteria results in attenutation of the observed effects. The attenutation increases with more relaxed inclusion criteria"
+                          "As shown, relaxing the user inclusion criteria results in attenutation of the observed effects. The attenutation increases with more relaxed inclusion criteria."
       )
     } else if (input$analyses_sens == "Lags") {
       text_part2 <- paste("to the number of lags included in the distributed lag model. <br><br>",
@@ -1185,7 +1185,7 @@ server <- function(input, output,session) {
              "<br><br>The BME data fusion estimates of daily and hourly average PM<sub>2.5</sub> at the census tract population centers can be downloaded <a href='https://doi.org/10.15139/S3/Z9WSWC' target='_blank'>here</a>.")
       
     } else {
-      paste0("<b>Figure.</b>"," Smoke density on ", input$dates_exp,", from NOAA's <a href='https://www.ospo.noaa.gov/Products/land/hms.html' target='_blank'>Hazard Mapping System Fire and Smoke product</a>.")
+      paste0("<b>Figure.</b>"," Smoke plumes and their associated density on ", input$dates_exp,", from NOAA's <a href='https://www.ospo.noaa.gov/Products/land/hms.html' target='_blank'>Hazard Mapping System Fire and Smoke product</a>.")
     }
   })
   
@@ -1403,8 +1403,8 @@ server <- function(input, output,session) {
           "<b>Abstract</b><br>",
           "<i>Background.</i> There is increasing evidence that fine particulate matter (PM<sub>2.5</sub>) adversely impacts cognitive performance. Today, wildfire smoke is one of the biggest sources of PM<sub>2.5</sub>, but little is known about how short-term exposure affects cognitive function.",
           "<br><i>Objectives.</i> We aimed to evaluate the cognitive effects of daily and sub-daily PM<sub>2.5</sub> and wildfire smoke exposure in adults.",
-          "<br><i>Methods.</i> Scores from a brain-training game targeted to improve attention were obtained for 10,288 adults in the contiguous United States (US). We estimated daily and sub-daily PM<sub>2.5</sub> exposure through a data fusion of observations from US Environmental Protection Agency and PurpleAir monitors. Daily wildfire smoke exposure in the western US was obtained from estimates of smoke plume density using satellite images. We used a longitudinal repeated measures design with linear mixed effects models to test for associations between short-term exposure metrics and attention score, overall and by age, gender, user behavior, and region.",
-          "<br><i>Results.</i> All measures of daily and sub-daily PM<sub>2.5</sub> exposure were negatively associated with attention score. A 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> the day of gameplay was associated with a 26.4 [-47.9, -4.9] point decrease in score, with an estimated average 4% reduction in final score associated with exposure. The effects were most pronounced in the western US and in habitual, younger (18-29), and older (70+) users, with no observed differences by gender. The presence of medium and heavy smoke density in the days and weeks prior to play were also negatively associated with score. Heavy smoke density the week prior to gameplay was associated with a 119.3 [-212.2, -26.4] point decrease in score relative to no smoke. Younger (18-29), habitual, and male users were most affected.", 
+          "<br><i>Methods.</i> Scores from a brain-training game targeted to improve attention were obtained for 10,288 adults in the contiguous United States (US). We estimated daily and sub-daily PM<sub>2.5</sub> exposure through a data fusion of observations from US Environmental Protection Agency and PurpleAir monitors. Daily smoke exposure in the western US was obtained from estimates of smoke plume density using satellite images. We used a longitudinal repeated measures design with linear mixed effects models to test for associations between short-term exposure metrics and attention score, overall and by age, gender, user behavior, and region.",
+          "<br><i>Results.</i> All measures of daily and sub-daily PM<sub>2.5</sub> exposure were negatively associated with attention score. A 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> the day of gameplay was associated with a 26.4 [-47.9, -4.9] point decrease in score, with an estimated average 4% reduction in final score associated with exposure. The effects were most pronounced in the wildfire-impacted western US and in habitual, younger (18-29), and older (70+) users, with no observed differences by gender. The presence of medium and heavy smoke density in the days and weeks prior to play were also negatively associated with score. Heavy smoke density the week prior to gameplay was associated with a 119.3 [-212.2, -26.4] point decrease in score relative to no smoke. Younger (18-29), habitual, and male users were most affected.", 
           "<br><i>Discussion.</i> Our results indicate that short-term exposure to PM<sub>2.5</sub> and wildfire smoke adversely impacts attention in adults, but further research is needed to elucidate these relationships.",
           "<br><br>",
           "<b>Authors:</b> Stephanie E. Cleland, Lauren H. Wyatt, Linda Wei, Naman Paul, Marc L. Serre, J. Jason West, Sarah B. Henderson, Ana G. Rappold")
