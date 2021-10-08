@@ -20,7 +20,8 @@ primary$Group = factor(primary$Group,levels=c("All","18-29","30-39","40-49","50-
 primary_palette <- data.frame("Group" = levels(primary$Group), "Color" = c("black","#CCBB44","#7AD151FF",
                                                                            "#22A884FF","#2A788EFF","#414487FF","#471164FF",
                                                                            "#00A7E1","#F17720","#D54799","#009F75",
-                                                                           "#5385BC","#99DDFF","#BBCC33","#44BB99"))
+                                                                           "#4477AA","#EE6677",
+                                                                           "#228833","#CCBB44"))
 
 
 # Data for sensitivity results
@@ -96,7 +97,7 @@ body <-  dashboardBody(
                              c("All" = "All",
                                "Age Group" = "Age",
                                "Gender" = "Gender",
-                               "Habitual" = "Habit")),
+                               "Habitual Behavior" = "Habit")),
                 checkboxGroupInput("compare", "Comparison:",
                                    c("Compare western and contiguous US" = "Yes")),
                 htmlOutput("primary_info_text2")
@@ -123,7 +124,7 @@ body <-  dashboardBody(
                 htmlOutput("sens_info_text"),
                 radioButtons("analyses_sens", "Sensitivity Analyses:",
                              c("Raw vs. Percentile Score" = "ScorePctile",
-                               "# of Lags" = "Lags",
+                               "Number of Lags" = "Lags",
                                "Non-Linear Relationship" = "Spline",
                                "Definition of Habitual User" = "Habit",
                                "User Inclusion Criteria (# Unique Dates)" = "UserDefDate",
@@ -151,9 +152,9 @@ body <-  dashboardBody(
             h2("Exposure Surfaces"),
             fluidRow(
               tabBox(width = 8,id="tabset_exp",
-                     tabPanel("ZIP3-Level",
+                     tabPanel("ZIP3",
                               sliderInput("dates_exp",
-                                          "Select a Date to Display:",
+                                          "Select a date to display:",
                                           min = as.Date("2017-01-01","%Y-%m-%d"),
                                           max = as.Date("2018-12-31","%Y-%m-%d"),
                                           value=as.Date("2017-01-01"),
@@ -163,9 +164,9 @@ body <-  dashboardBody(
                               imageOutput("exposure_img",inline=T),
                               htmlOutput("exposure_text")
                      ),
-                     tabPanel("Original",
+                     tabPanel("Continuous",
                               sliderInput("dates_exp2",
-                                          "Select a Date to Display:",
+                                          "Select a date to display:",
                                           min = as.Date("2017-01-01","%Y-%m-%d"),
                                           max = as.Date("2018-12-31","%Y-%m-%d"),
                                           value=as.Date("2017-01-01"),
@@ -220,13 +221,13 @@ body <-  dashboardBody(
                              c("All" = "All",
                                "Age Group" = "Age",
                                "Gender" = "Gender",
-                               "Habitual" = "Habit",
+                               "Habitual Behavior" = "Habit",
                                "Device" = "Device")),
                 radioButtons("subgroup_lum2", "Subgroup 2 (Optional):",
                              c("None" = "None",
                                "Age Group" = "Age",
                                "Gender" = "Gender",
-                               "Habitual" = "Habit",
+                               "Habitual Behavior" = "Habit",
                                "Device" = "Device")),
                 radioButtons("region_lum", "Region:",
                              c("Western US" = "Western",
@@ -445,7 +446,7 @@ server <- function(input, output,session) {
   })
   
   output$primary_info_text <- renderText({
-    paste("Select the exposure, subgroup, and region to display results for:<br><br>")
+    paste("Select the exposure metric, user subgroup, and region to display:<br><br>")
   })
   
   output$primary_info_text2 <- renderText({
@@ -461,26 +462,34 @@ server <- function(input, output,session) {
       subgroup <- input$subgroup
     }
     
+    if (length(input$compare > 0)) {
+      if (input$compare == "Yes") {
+        region <- "western and contiguous"
+      }
+    } else {
+      region <- tolower(input$region)
+    }
+    
     if (input$region == "Contiguous" & input$exposure == "Smoke") {
       paste("Smoke results for the contiguous US are unavailable")
     } else {
       if (input$exposure == "Smoke") {
         exposure_text = tolower(input$exposure)
         if (input$subgroup=="All") {
-          paste("<b>Figure.</b>","Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for all", tolower(input$region), "US users.",
+          paste("Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for all", tolower(input$region), "US users.",
                 "Exposure metrics include the maximum smoke density the day of and day prior to gameplay (Lag 0 and Lag 1) and in the 1 and 2 weeks prior to gameplay (1-Week and 2-Week).")
         } else {
-          paste("<b>Figure.</b>","Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for", tolower(input$region),"US users by", tolower(subgroup),".",
+          paste("Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for", tolower(input$region),"US users by", tolower(subgroup),".",
                 "Exposure metrics include the maximum smoke density the day of and day prior to gameplay (Lag 0 and Lag 1) and in the 1 and 2 weeks prior to gameplay (1-Week and 2-Week).")
         }  
       } else {
         exposure_text = input$exposure
         if (input$subgroup=="All") {
-          paste("<b>Figure.</b>","Change in attention score per 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> for all", tolower(input$region), "US users.",
+          paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> for all", region, "US users.",
                 "Exposure metrics include the maximum hourly average PM<sub>2.5</sub> in the 3 and 12 hours prior to gameplay (3 and 12-Hour Max), the daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), and the cumulative daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative)."
           )
         } else {
-          paste("<b>Figure.</b>","Change in attention score per 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> for", tolower(input$region),"US users by", tolower(subgroup),".",
+          paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> for", region,"US users by", tolower(subgroup),".",
                 "Exposure metrics include the maximum hourly average PM<sub>2.5</sub> in the 3 and 12 hours prior to gameplay (3 and 12-Hour Max), the daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), and the cumulative daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative)."
           )
         }  
@@ -494,14 +503,23 @@ server <- function(input, output,session) {
     } else {
       subgroup <- input$subgroup
     }
+    
+    if (length(input$compare > 0)) {
+      if (input$compare == "Yes") {
+        region <- "western and contiguous"
+      }
+    } else {
+      region <- tolower(input$region)
+    }
+    
     if (input$exposure == "PM2.5") {
       exposure_text = input$exposure
       if (input$subgroup=="All") {
-        paste("<b>Figure.</b>","Change in attention score per 10 &microg/m<sup>3</sup> increase in daily PM<sub>2.5</sub> for all", tolower(input$region), "US users.",
+        paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in daily PM<sub>2.5</sub> for all", region, "US users.",
               "Exposure metrics include the daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), the 1-6 days prior to gameplay (Lag 1-6), and the cumulative daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative)."
         )
       } else {
-        paste("<b>Figure.</b>","Change in attention score per 10 &microg/m<sup>3</sup> increase in daily PM<sub>2.5</sub> for", tolower(input$region),"US users by", tolower(subgroup),".",
+        paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in daily PM<sub>2.5</sub> for", region,"US users by", tolower(subgroup),".",
               "Exposure metrics include the daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), the 1-6 days prior to gameplay (Lag 1-6), and the cumulative daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative).")
       }  
     } 
@@ -513,13 +531,22 @@ server <- function(input, output,session) {
     } else {
       subgroup <- input$subgroup
     }
+    
+    if (length(input$compare > 0)) {
+      if (input$compare == "Yes") {
+        region <- "western and contiguous"
+      }
+    } else {
+      region <- tolower(input$region)
+    }
+    
     if (input$exposure == "PM2.5") {
       exposure_text = input$exposure
       if (input$subgroup=="All") {
-        paste("<b>Figure.</b>","Change in attention score per 10 &microg/m<sup>3</sup> increase in sub-daily PM<sub>2.5</sub> for all", tolower(input$region), "US users.",
+        paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in sub-daily PM<sub>2.5</sub> for all", region, "US users.",
               "Exposure metrics include the maximum hourly average PM<sub>2.5</sub> in the 3, 6, and 12 hours prior to gameplay (3, 6 and 12-Hour Max).")
       } else {
-        paste("<b>Figure.</b>","Change in attention score per 10 &microg/m<sup>3</sup> increase in sub-daily PM<sub>2.5</sub> for", tolower(input$region),"US users by", tolower(subgroup),".",
+        paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in sub-daily PM<sub>2.5</sub> for", region,"US users by", tolower(subgroup),".",
               "Exposure metrics include the maximum hourly average PM<sub>2.5</sub> in the 3, 6, and 12 hours prior to gameplay (3, 6 and 12-Hour Max).")
       }  
     } 
@@ -603,11 +630,11 @@ server <- function(input, output,session) {
   })
   
   output$sens_info_text <- renderText({
-    paste("Select the sensitivity analysis, exposure, and region to display results for:<br><br>")
+    paste("Select the sensitivity analysis, exposure metric, and region to display:<br><br>")
   })
   
   output$sens_info_text2 <- renderText({
-    paste("<i>Note:</i> Results for smoke exposure are only available for the western US. For the 'non-linear relationship' and '# of lags' sensitivity analyses, results are only available for PM<sub>2.5</sub>.")
+    paste("<i>Note:</i> Results for smoke exposure are only available for the western US. For the 'non-linear relationship' and 'number of lags' sensitivity analyses, results are only available for PM<sub>2.5</sub>.")
   })
   
   output$sens_table_title <- renderText({
@@ -624,7 +651,7 @@ server <- function(input, output,session) {
     } else {
       exposure_text = "PM<sub>2.5</sub>"
     }
-    text_part1 <- paste("<b>Figure.</b>","Sensitivity of observed associations between",exposure_text,"and attention score in the",tolower(input$region_sens),
+    text_part1 <- paste("Sensitivity of observed associations between",exposure_text,"and attention score in the",tolower(input$region_sens),
                         "US")
     
     if (input$analyses_sens == "UserDefDate") {
@@ -656,7 +683,7 @@ server <- function(input, output,session) {
                           "As shown, when different definitions of habitual behavior are used, habitual users are still more affected than non-habitual users, though the differences between the two groups are less pronounced."
       )
     } else if (input$analyses_sens == "Spline") {
-      text_part1 <-  paste("<b>Figure.</b>","Non-linear association between daily PM<sub>2.5</sub> and attention score in the",tolower(input$region_sens),"US.<br><br>")
+      text_part1 <-  paste("Non-linear association between daily PM<sub>2.5</sub> and attention score in the",tolower(input$region_sens),"US.<br><br>")
       text_part2<-paste("This sensitivity analysis considered the possibility of a non-linear association between daily PM<sub>2.5</sub> and attention score. Cubic splines were fit to all 7 lags and",
                         "results are shown for the lag 0 and 7-day cumulative effects.",
                         "As shown, the effects of PM<sub>2.5</sub> are largely null and remain relatively constant at concentrations greater than 5 &microg/m<sup>3</sup>, providing insufficient evidence for a nonlinear association between PM<sub>2.5</sub> and attention score."
@@ -1124,19 +1151,19 @@ server <- function(input, output,session) {
   }) 
   
   output$exp_info_text <- renderText({
-    paste("Select which exposure surface to display:<br><br>")
+    paste("Select the exposure metric to display:<br><br>")
   })
   
   output$exp_info_text2 <- renderText({
-    paste("<i>Note:</i> The 'ZIP3-Level' tab displays the exposure surfaces used to generate the results.",
-          "The 'Original' tab displays the exposure surfaces before they were aggregated to the ZIP3-level.",
+    paste("<i>Note:</i> The 'ZIP3' tab displays the exposure surfaces used to generate the results.",
+          "The 'Continuous' tab displays the exposure surfaces before they were aggregated to the ZIP3-level.",
           "The 'Monitoring Station' tab is only available for PM<sub>2.5</sub> and displays the locations of the monitoring stations used to generate the PM<sub>2.5</sub> exposure surfaces.")
   })
   
   observeEvent(input$tabset_exp, {
-    if (input$tabset_exp=="Original") {
+    if (input$tabset_exp=="Continuous") {
       updateSliderInput(session, "dates_exp2", value=input$dates_exp )
-    } else if (input$tabset_exp=="ZIP3-Level"){
+    } else if (input$tabset_exp=="ZIP3"){
       updateSliderInput(session, "dates_exp", value=input$dates_exp2 )
     }
   })
@@ -1151,11 +1178,11 @@ server <- function(input, output,session) {
   
   output$exposure_text <- renderText({
     if (input$exposure_exp == "PM2.5") {
-      paste0("<b>Figure.</b>"," ZIP3-level population-weighted daily average PM<sub>2.5</sub> on ", input$dates_exp,".",
+      paste0("ZIP3-level population-weighted daily average PM<sub>2.5</sub> on ", input$dates_exp,".",
              "<br><br>The ZIP3-level population-weighted daily and hourly average PM<sub>2.5</sub> exposure data can be downloaded <a href='https://doi.org/10.23719/1523337' target='_blank'>here</a>.")
       
     } else {
-      paste0("<b>Figure.</b>"," ZIP3-level daily maximum smoke density on ", input$dates_exp,".",
+      paste0("ZIP3-level daily maximum smoke density on ", input$dates_exp,".",
              "<br><br>The ZIP3-level daily maximum smoke density exposure data can be downloaded <a href='https://doi.org/10.23719/1523337' target='_blank'>here</a>.")
     }
     
@@ -1180,12 +1207,12 @@ server <- function(input, output,session) {
   
   output$exposure_text2 <- renderText({
     if (input$exposure_exp == "PM2.5") {
-      paste0("<b>Figure.</b>"," Daily average PM<sub>2.5</sub> on ", input$dates_exp,", estimated through the BME data fusion of observations from ",
+      paste0("Daily average PM<sub>2.5</sub> on ", input$dates_exp,", estimated through the BME data fusion of observations from ",
              "<a href='https://www.epa.gov/aqs'>FRM/FEM</a> and <a href='https://api.purpleair.com/' target='blank'>PurpleAir</a> monitors.",
              "<br><br>The BME data fusion estimates of daily and hourly average PM<sub>2.5</sub> at the census tract population centers can be downloaded <a href='https://doi.org/10.15139/S3/Z9WSWC' target='_blank'>here</a>.")
       
     } else {
-      paste0("<b>Figure.</b>"," Smoke plumes and their associated density on ", input$dates_exp,", from NOAA's <a href='https://www.ospo.noaa.gov/Products/land/hms.html' target='_blank'>Hazard Mapping System Fire and Smoke product</a>.")
+      paste0("Smoke plumes and their associated density on ", input$dates_exp,", from NOAA's <a href='https://www.ospo.noaa.gov/Products/land/hms.html' target='_blank'>Hazard Mapping System Fire and Smoke product</a>.")
     }
   })
   
@@ -1215,7 +1242,7 @@ server <- function(input, output,session) {
   }, deleteFile = FALSE)
   
   output$exposure_text3 <- renderText({
-    paste("<b>Figure.</b> Location of FRM/FEM and PurpleAir monitoring stations used to estimate daily average PM<sub>2.5</sub>.")
+    paste("Location of FRM/FEM and PurpleAir monitoring stations used to estimate daily average PM<sub>2.5</sub>.")
   })
   
   output$exposure_img3 <- renderImage({
@@ -1226,7 +1253,7 @@ server <- function(input, output,session) {
   
   
   output$exposure_text4 <- renderText({
-    paste("<b>Figure.</b> Location of FRM/FEM and PurpleAir monitoring stations used to estimate hourly average PM<sub>2.5</sub>.")
+    paste("Location of FRM/FEM and PurpleAir monitoring stations used to estimate hourly average PM<sub>2.5</sub>.")
   })
   
   output$exposure_img4 <- renderImage({
@@ -1247,11 +1274,11 @@ server <- function(input, output,session) {
   })
   
   output$lum_info_text <- renderText({
-    paste("Select which subgroup(s) and region to display learning curves and study population characteristics for:<br><br>")
+    paste("Select the user subgroup(s) and region to display:<br><br>")
   })
   
   output$lum_info_text2 <- renderText({
-    paste("<i>Note:</i> Up to 2 subgroups can be selected at a time in the 'Learning Curves' tab.",
+    paste("<i>Note:</i> Up to 2 subgroups may be selected at a time in the 'Learning Curves' tab.",
           "In the 'User Characteristics' tab, only 1 subgroup may be selected at a time." )
   })
   
@@ -1268,16 +1295,16 @@ server <- function(input, output,session) {
         subgroup_lum2 <- input$subgroup_lum2
       }
       if (input$subgroup_lum == "All" & input$subgroup_lum2 == "None") {
-        paste("<b>Figure.</b> Average learning curve across 20 plays of <i>Lost in Migration</i> for all",tolower(input$region_lum),"US users.")
+        paste("Average learning curve across 20 plays of <i>Lost in Migration</i> for all",tolower(input$region_lum),"US users.")
       } else if (input$subgroup_lum == input$subgroup_lum2 || 
                  (input$subgroup_lum == "All" || input$subgroup_lum2 == "None")) {
         if (input$subgroup_lum != "All") {
-          paste0("<b>Figure.</b> Average learning curve across 20 plays of <i>Lost in Migration</i> for ",tolower(input$region_lum)," US users by ", tolower(subgroup_lum),".")
+          paste0("Average learning curve across 20 plays of <i>Lost in Migration</i> for ",tolower(input$region_lum)," US users by ", tolower(subgroup_lum),".")
         } else {
-          paste0("<b>Figure.</b> Average learning curve across 20 plays of <i>Lost in Migration</i> for ",tolower(input$region_lum)," US users by ", tolower(subgroup_lum2),".")
+          paste0("Average learning curve across 20 plays of <i>Lost in Migration</i> for ",tolower(input$region_lum)," US users by ", tolower(subgroup_lum2),".")
         }
       } else {
-        paste0("<b>Figure.</b> Average learning curve across 20 plays of <i>Lost in Migration</i> for ",tolower(input$region_lum)," US users by ", tolower(subgroup_lum),
+        paste0("Average learning curve across 20 plays of <i>Lost in Migration</i> for ",tolower(input$region_lum)," US users by ", tolower(subgroup_lum),
                " and ",tolower(subgroup_lum2),".")
       }
     }
@@ -1296,9 +1323,9 @@ server <- function(input, output,session) {
         } else {
           other_region = 'western'
         }
-        paste("<b>Table.</b> User characteristics of the",tolower(input$region_lum),"and",other_region,"US study populations.")
+        paste("User characteristics of the",tolower(input$region_lum),"and",other_region,"US study populations.")
       } else {
-        paste0("<b>Table.</b> User characteristics of the ",tolower(input$region_lum)," US study population by ", tolower(subgroup_lum),".")
+        paste0("User characteristics of the ",tolower(input$region_lum)," US study population by ", tolower(subgroup_lum),".")
         
       }
     }
@@ -1316,6 +1343,14 @@ server <- function(input, output,session) {
       plot_data <- learning_curves[group1 == input$subgroup_lum&group2==input$subgroup_lum2&
                                      region==input$region_lum,]
     }
+    
+    
+    if (input$subgroup_lum=="Gender") {
+      temp <- primary_palette[8,2]
+      primary_palette[8,2] <- primary_palette[9,2]
+      primary_palette[9,2] <- temp
+    }
+    
     
     if (input$subgroup_lum2 == "None" || input$subgroup_lum==input$subgroup_lum2 ||
         (input$subgroup_lum == "All" && input$subgroup_lum2 != "None")) {
@@ -1399,7 +1434,7 @@ server <- function(input, output,session) {
           " used in the analyses ('Exposure Surfaces' and 'Lumosity User Data' tabs, respectively). It also provides information on and results for all sensitivity analyses conducted ('Sensitivity Analyses' tab). <br><br>",
           "The BME data fusion estimates of daily and hourly average PM<sub>2.5</sub> at census tract population centers across the contiguous US can be downloaded <a href='https://doi.org/10.15139/S3/Z9WSWC' target='_blank'>here</a>. <br><br> ",
           "The ZIP3-level daily maximum smoke density and population-weighted daily and hourly average PM<sub>2.5</sub> exposure data can be downloaded at <a href='https://doi.org/10.23719/1523337' target='_blank'>here</a>. <br><br>",
-          "For any questions, please email: <a href = 'mailto: cleland.stephanie@epa.gov'>cleland.stephanie@epa.gov</a> or <a href = 'mailto: cleland.stephanie@epa.gov'>rappold.ana@epa.gov</a>.<br><br>",
+          "For any questions, please email: <a href = 'mailto: cleland.stephanie@epa.gov'>cleland.stephanie@epa.gov</a> or <a href = 'mailto: rappold.ana@epa.gov'>rappold.ana@epa.gov</a>.<br><br>",
           "<b>Abstract</b><br>",
           "<i>Background.</i> There is increasing evidence that fine particulate matter (PM<sub>2.5</sub>) adversely impacts cognitive performance. Today, wildfire smoke is one of the biggest sources of PM<sub>2.5</sub>, but little is known about how short-term exposure affects cognitive function.",
           "<br><i>Objectives.</i> We aimed to evaluate the cognitive effects of daily and sub-daily PM<sub>2.5</sub> and wildfire smoke exposure in adults.",
