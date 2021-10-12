@@ -9,6 +9,8 @@ library(tigris)
 library(dplyr)
 library(gridExtra)
 
+#rsconnect::setAccountInfo(name='ehs-bccdc', token='97AF057AFE004D437580E714778AAAA1', secret='kdTRe2jWo1rPRdeszOsLYinaZzRoYpLV72Us7mUu')
+
 # Data for Primary results
 primary <- data.table(readRDS("./data/primary_results_full.RDS"))
 cols <- c("Beta","Lower","Upper","# Users","P-Value")
@@ -477,20 +479,20 @@ server <- function(input, output,session) {
         exposure_text = tolower(input$exposure)
         if (input$subgroup=="All") {
           paste("Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for all", tolower(input$region), "US users.",
-                "Exposure metrics include the maximum smoke density the day of and day prior to gameplay (Lag 0 and Lag 1) and in the 1 and 2 weeks prior to gameplay (1-Week and 2-Week).")
+                "Exposure metrics include the daily maximum smoke density the day of and day prior to gameplay (Lag 0 and Lag 1) and in the 1 and 2 weeks prior to gameplay (1 and 2-Week).")
         } else {
           paste("Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for", tolower(input$region),"US users by", tolower(subgroup),".",
-                "Exposure metrics include the maximum smoke density the day of and day prior to gameplay (Lag 0 and Lag 1) and in the 1 and 2 weeks prior to gameplay (1-Week and 2-Week).")
+                "Exposure metrics include the daily maximum smoke density the day of and day prior to gameplay (Lag 0 and Lag 1) and in the 1 and 2 weeks prior to gameplay (1 and 2-Week).")
         }  
       } else {
         exposure_text = input$exposure
         if (input$subgroup=="All") {
           paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> for all", region, "US users.",
-                "Exposure metrics include the maximum hourly average PM<sub>2.5</sub> in the 3 and 12 hours prior to gameplay (3 and 12-Hour Max), the daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), and the cumulative daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative)."
+                "Exposure metrics include the maximum population-weighted hourly average PM<sub>2.5</sub> in the 3 and 12 hours prior to gameplay (3 and 12-Hour Max), the population-weighted daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), and the cumulative population-weighted daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative)."
           )
         } else {
           paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> for", region,"US users by", tolower(subgroup),".",
-                "Exposure metrics include the maximum hourly average PM<sub>2.5</sub> in the 3 and 12 hours prior to gameplay (3 and 12-Hour Max), the daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), and the cumulative daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative)."
+                "Exposure metrics include the maximum population-weighted hourly average PM<sub>2.5</sub> in the 3 and 12 hours prior to gameplay (3 and 12-Hour Max), the population-weighted daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), and the cumulative population-weighted daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative)."
           )
         }  
       } 
@@ -516,11 +518,11 @@ server <- function(input, output,session) {
       exposure_text = input$exposure
       if (input$subgroup=="All") {
         paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in daily PM<sub>2.5</sub> for all", region, "US users.",
-              "Exposure metrics include the daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), the 1-6 days prior to gameplay (Lag 1-6), and the cumulative daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative)."
+              "Exposure metrics include the population-weighted daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), the 1-6 days prior to gameplay (Lag 1-6), and the cumulative population-weighted daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative)."
         )
       } else {
         paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in daily PM<sub>2.5</sub> for", region,"US users by", tolower(subgroup),".",
-              "Exposure metrics include the daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), the 1-6 days prior to gameplay (Lag 1-6), and the cumulative daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative).")
+              "Exposure metrics include the population-weighted daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), the 1-6 days prior to gameplay (Lag 1-6), and the cumulative population-weighted daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative).")
       }  
     } 
   })
@@ -544,10 +546,10 @@ server <- function(input, output,session) {
       exposure_text = input$exposure
       if (input$subgroup=="All") {
         paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in sub-daily PM<sub>2.5</sub> for all", region, "US users.",
-              "Exposure metrics include the maximum hourly average PM<sub>2.5</sub> in the 3, 6, and 12 hours prior to gameplay (3, 6 and 12-Hour Max).")
+              "Exposure metrics include the maximum population-weighted hourly average PM<sub>2.5</sub> in the 3, 6, and 12 hours prior to gameplay (3, 6 and 12-Hour Max).")
       } else {
         paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in sub-daily PM<sub>2.5</sub> for", region,"US users by", tolower(subgroup),".",
-              "Exposure metrics include the maximum hourly average PM<sub>2.5</sub> in the 3, 6, and 12 hours prior to gameplay (3, 6 and 12-Hour Max).")
+              "Exposure metrics include the maximum population-weighted hourly average PM<sub>2.5</sub> in the 3, 6, and 12 hours prior to gameplay (3, 6 and 12-Hour Max).")
       }  
     } 
   })
@@ -1345,7 +1347,7 @@ server <- function(input, output,session) {
     }
     
     
-    if (input$subgroup_lum=="Gender") {
+    if (input$subgroup_lum=="Gender" || input$subgroup_lum2=="Gender") {
       temp <- primary_palette[8,2]
       primary_palette[8,2] <- primary_palette[9,2]
       primary_palette[9,2] <- temp
@@ -1438,8 +1440,8 @@ server <- function(input, output,session) {
           "<b>Abstract</b><br>",
           "<i>Background.</i> There is increasing evidence that fine particulate matter (PM<sub>2.5</sub>) adversely impacts cognitive performance. Today, wildfire smoke is one of the biggest sources of PM<sub>2.5</sub>, but little is known about how short-term exposure affects cognitive function.",
           "<br><i>Objectives.</i> We aimed to evaluate the cognitive effects of daily and sub-daily PM<sub>2.5</sub> and wildfire smoke exposure in adults.",
-          "<br><i>Methods.</i> Scores from a brain-training game targeted to improve attention were obtained for 10,288 adults in the contiguous United States (US). We estimated daily and sub-daily PM<sub>2.5</sub> exposure through a data fusion of observations from US Environmental Protection Agency and PurpleAir monitors. Daily smoke exposure in the western US was obtained from estimates of smoke plume density using satellite images. We used a longitudinal repeated measures design with linear mixed effects models to test for associations between short-term exposure metrics and attention score, overall and by age, gender, user behavior, and region.",
-          "<br><i>Results.</i> All measures of daily and sub-daily PM<sub>2.5</sub> exposure were negatively associated with attention score. A 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> the day of gameplay was associated with a 26.4 [-47.9, -4.9] point decrease in score, with an estimated average 4% reduction in final score associated with exposure. The effects were most pronounced in the wildfire-impacted western US and in habitual, younger (18-29), and older (70+) users, with no observed differences by gender. The presence of medium and heavy smoke density in the days and weeks prior to play were also negatively associated with score. Heavy smoke density the week prior to gameplay was associated with a 119.3 [-212.2, -26.4] point decrease in score relative to no smoke. Younger (18-29), habitual, and male users were most affected.", 
+          "<br><i>Methods.</i> Scores from a brain-training game designed to measure attention were obtained for 10,288 adults in the contiguous United States (US). We estimated daily and sub-daily PM<sub>2.5</sub> exposure through a data fusion of observations from US Environmental Protection Agency and PurpleAir monitors. Daily smoke exposure in the western US was obtained from estimates of smoke plume density using satellite images. We used a longitudinal repeated measures design with linear mixed effects models to test for associations between short-term exposure metrics and attention score, overall and by age, gender, user behavior, and region.",
+          "<br><i>Results.</i> All measures of daily and sub-daily PM<sub>2.5</sub> exposure were negatively associated with attention score. A 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> the day of gameplay was associated with a 26.4 [-47.9, -4.9] point decrease in score, with an estimated average 4% reduction in final score associated with exposure. The effects were most pronounced in the wildfire-impacted western US and in habitual, younger (18-29), and older (70+) users, with no observed differences by gender. The presence of medium and heavy smoke density in the days and weeks prior to play were also negatively associated with score. Heavy smoke density the day prior to gameplay was associated with a 117.0 [-232.3, -1.7] point decrease in score relative to no smoke. Younger (18-29), habitual, and male users were most affected.", 
           "<br><i>Discussion.</i> Our results indicate that short-term exposure to PM<sub>2.5</sub> and wildfire smoke adversely impacts attention in adults, but further research is needed to elucidate these relationships.",
           "<br><br>",
           "<b>Authors:</b> Stephanie E. Cleland, Lauren H. Wyatt, Linda Wei, Naman Paul, Marc L. Serre, J. Jason West, Sarah B. Henderson, Ana G. Rappold")
