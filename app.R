@@ -9,7 +9,6 @@ library(tigris)
 library(dplyr)
 library(gridExtra)
 
-#rsconnect::setAccountInfo(name='ehs-bccdc', token='97AF057AFE004D437580E714778AAAA1', secret='kdTRe2jWo1rPRdeszOsLYinaZzRoYpLV72Us7mUu')
 
 # Data for Primary results
 primary <- data.table(readRDS("./data/primary_results_full.RDS"))
@@ -25,9 +24,8 @@ primary_palette <- data.frame("Group" = levels(primary$Group), "Color" = c("blac
                                                                            "#4477AA","#EE6677",
                                                                            "#228833","#CCBB44"))
 
-
 # Data for sensitivity results
-sensitivity <- data.table(readRDS("./data/sensitivity_results_full.RDS"))
+sensitivity <- data.table(readRDS("./data/sensitivity_results_full_NEW.RDS"))
 sensitivity <- sensitivity[!(SpecificAnalysis%in%c("1dates","1plays")),]
 sensitivity[, (cols) := lapply(.SD, as.numeric), .SDcols = cols]
 spline_west <- data.table(readRDS("./data/spline_results.RDS"))
@@ -35,17 +33,20 @@ spline_contig <- data.table(readRDS("./data/spline_results_nationwide.RDS"))
 
 
 # Data for learning curves
-learning_curves <- readRDS("./data/learning_curves.RDS")
+learning_curves <- readRDS("./data/learning_curves_NEW.RDS")
 table1_west <-  readRDS("./data/table1_west.RDS")
 table1_contig <- readRDS("./data/table1_contig.RDS")
+hist_data <- readRDS("./data/hist_data.RDS")
+hist_data[hist_data$gender=="m"]$gender <- "Male"
+hist_data[hist_data$gender=="f"]$gender <- "Female"
+state_west <- c("WA","CA","OR","ID","NV","MT")
 
 header <- dashboardHeader(
-  title = span(
-    # "The Effects of Short-Term PM2.5 and Wildfire Smoke Exposure on Cognitive Performance in US Adults: Dashboard",
-    HTML(paste0("The Effects of Short-Term Wildfire Smoke and PM",tags$sub("2.5"), ' Exposure on Cognitive Performance in US Adults: Dashboard')),
-    style = "position: absolute;left: 10px; font-weight: bold"
+  title = span( 
+    HTML(paste0("Dashboard for 'Short-Term Exposure to Wildfire Smoke and PM",tags$sub("2.5"), " and Cognitive Performance in a Brain-Training Game: A Longitudinal Study of US Adults'")),
+    style = "position: absolute;left: 10px; font-weight: bold; font-size: 15px"
   ),
-  titleWidth = "1200px"
+  titleWidth = "1600px"
 )
 
 sidebar <- dashboardSidebar(
@@ -127,10 +128,11 @@ body <-  dashboardBody(
                 radioButtons("analyses_sens", "Sensitivity Analyses:",
                              c("Raw vs. Percentile Score" = "ScorePctile",
                                "Number of Lags" = "Lags",
-                               "Non-Linear Relationship" = "Spline",
+                               "Nonlinear Relationship" = "Spline",
                                "Definition of Habitual User" = "Habit",
                                "User Inclusion Criteria (# Unique Dates)" = "UserDefDate",
-                               "User Inclusion Criteria (# Plays)" = "UserDefPlay"
+                               "User Inclusion Criteria (# Plays)" = "UserDefPlay",
+                               "Covariate Model Specification" = "ModelFit"
                              )),
                 radioButtons("exposure_sens", "Exposure:",
                              c("PM2.5" = "PM2.5",
@@ -214,6 +216,16 @@ body <-  dashboardBody(
                               htmlOutput("lumosity_tab"),
                               div(style = "height:700px; overflow-y: scroll;overflow-x: scroll;", 
                                   DT::dataTableOutput('lumosity_table'))
+                     ),
+                     tabPanel("Attention Scores",
+                              selectInput(
+                                "playn",
+                                "Select which play(s) display distribution(s) for:",
+                                c("All","1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16","17","18","19","20"),
+                                selected = "All"),
+                              plotOutput("lumosity_hist"),
+                              htmlOutput("lumosity_hist_text")
+                              
                      )
               ),
               box(
@@ -296,14 +308,28 @@ server <- function(input, output,session) {
         theme_bw(base_size=14)+ 
         ylab(expression("Change in Score per 10" ~ mu *"g/m"^3 * " PM"[2.5])) +
         xlab("")  + 
-        scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2])) + 
         theme( panel.grid.major.x = element_blank() ,
                panel.grid.major.y = element_line(size=.1, color="grey90" ),
-               panel.grid.minor.x = element_blank()) + 
-        scale_shape_manual(name = "Region",
-                           values = c(shape),
-                           breaks = c(input$region), guide='none') + 
-        guides(color = guide_legend(override.aes = list(shape = shape)))
+               panel.grid.minor.x = element_blank()) 
+      
+      if (input$subgroup == "Age") {
+        plot <- plot+ 
+          scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2]),
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$Group),1])[1:6],"\u2265 70")
+          ) + 
+          scale_shape_manual(name = "Region",
+                             values = c(shape),
+                             breaks = c(input$region), guide='none') + 
+          guides(color = guide_legend(override.aes = list(shape = shape)))
+      } else {
+        plot <- plot+ scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2])) + 
+          scale_shape_manual(name = "Region",
+                             values = c(shape),
+                             breaks = c(input$region), guide='none') + 
+          guides(color = guide_legend(override.aes = list(shape = shape)))
+      }
+      
+      
       if (length(input$compare > 0)) {
         if (input$compare == "Yes") {
           compare <- primary[Exposure==input$exposure&(GroupType==input$subgroup|GroupType=="All")&Region==compare_region,]
@@ -324,16 +350,16 @@ server <- function(input, output,session) {
       plot
     } else {
       if (input$region=="Western") {
+        plot_data <- plot_data[plot_data$ExposureDuration != "2-Week Max",]
         plot_data$ExposureLevel = factor(plot_data$ExposureLevel, levels=c('Light','Medium','Heavy'))
-        plot_data$ExposureDuration = factor(plot_data$ExposureDuration,levels=c("Lag 0","Lag 1","1-Week Max", "2-Week Max"))
-        levels(plot_data$ExposureDuration) <- c("Lag 0","Lag 1","1-Week","2-Week")
-        ggplot(data=plot_data,aes(x=ExposureDuration,y=Beta,ymin=Lower,ymax=Upper,col=Group,group=Group)) +
+        plot_data$ExposureDuration = factor(plot_data$ExposureDuration,levels=c("Lag 0","Lag 1","1-Week Max"))
+        levels(plot_data$ExposureDuration) <- c("Lag 0","Lag 1","1-Week")
+        plot <- ggplot(data=plot_data,aes(x=ExposureDuration,y=Beta,ymin=Lower,ymax=Upper,col=Group,group=Group)) +
           geom_hline(yintercept=0,lty=2) +
           geom_errorbar(position=position_dodge(width = 0.6),width=0.25,size=1) +
           geom_point(shape = 16, position=position_dodge(width = 0.6),size=4)+
           facet_grid(.~ExposureLevel,switch="x") + 
-          theme_bw(base_size=14)+ 
-          scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2])) + 
+          theme_bw(base_size=14) +          
           theme(strip.placement = "outside",                    
                 strip.background = element_rect(fill = "white",color="white"),
                 strip.text = element_text(size = 14,angle=0,face="bold"),
@@ -344,7 +370,18 @@ server <- function(input, output,session) {
                 axis.text.x=element_text(angle=30,hjust=1)) + 
           ylab('Change in Score Relative to No Smoke')+
           xlab("")
+        
+        if (input$subgroup == "Age") {
+          plot <- plot+ 
+            scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2]),
+                               labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$Group),1])[1:6],"\u2265 70"))
+        } else {
+          plot <- plot+ scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2])) 
+        }
+        
+        
       }
+      plot
     }
     
   })
@@ -370,14 +407,28 @@ server <- function(input, output,session) {
         theme_bw(base_size=14)+ 
         ylab(expression("Change in Score per 10" ~ mu *"g/m"^3 * " PM"[2.5])) +
         xlab("")  + 
-        scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2])) + 
         theme( panel.grid.major.x = element_blank() ,
                panel.grid.major.y = element_line(size=.1, color="grey90" ),
-               panel.grid.minor.x = element_blank()) + 
-        scale_shape_manual(name = "Region",
-                           values = c(shape),
-                           breaks = c(input$region), guide='none') + 
-        guides(color = guide_legend(override.aes = list(shape = shape)))
+               panel.grid.minor.x = element_blank()) 
+      
+      if (input$subgroup == "Age") {
+        plot <- plot+ 
+          scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2]),
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$Group),1])[1:6],"\u2265 70")
+          ) + 
+          scale_shape_manual(name = "Region",
+                             values = c(shape),
+                             breaks = c(input$region), guide='none') + 
+          guides(color = guide_legend(override.aes = list(shape = shape)))
+      } else {
+        plot <- plot+ scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2])) + 
+          scale_shape_manual(name = "Region",
+                             values = c(shape),
+                             breaks = c(input$region), guide='none') + 
+          guides(color = guide_legend(override.aes = list(shape = shape)))
+      }
+      
+      
       if (length(input$compare > 0)) {
         if (input$compare == "Yes") {
           compare <- primary[ExposureLevel=="Daily"&Exposure==input$exposure&(GroupType==input$subgroup|GroupType=="All")&Region==compare_region,]
@@ -419,14 +470,29 @@ server <- function(input, output,session) {
         theme_bw(base_size=14)+ 
         ylab(expression("Change in Score per 10" ~ mu *"g/m"^3 * " PM"[2.5])) +
         xlab("")  + 
-        scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2])) + 
         theme(panel.grid.major.x = element_blank() ,
               panel.grid.major.y = element_line(size=.1, color="grey90" ),
-              panel.grid.minor.x = element_blank())+ 
-        scale_shape_manual(name = "Region",
-                           values = c(shape),
-                           breaks = c(input$region), guide='none') + 
-        guides(color = guide_legend(override.aes = list(shape = shape)))
+              panel.grid.minor.x = element_blank())
+      
+      
+      if (input$subgroup == "Age") {
+        plot <- plot+ 
+          scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2]),
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$Group),1])[1:6],"\u2265 70")
+          ) + 
+          scale_shape_manual(name = "Region",
+                             values = c(shape),
+                             breaks = c(input$region), guide='none') + 
+          guides(color = guide_legend(override.aes = list(shape = shape)))
+      } else {
+        plot <- plot+ scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2])) + 
+          scale_shape_manual(name = "Region",
+                             values = c(shape),
+                             breaks = c(input$region), guide='none') + 
+          guides(color = guide_legend(override.aes = list(shape = shape)))
+      }
+      
+      
       if (length(input$compare > 0)) {
         if (input$compare == "Yes") {
           compare <- primary[ExposureLevel=="Hourly"&Exposure==input$exposure&(GroupType==input$subgroup|GroupType=="All")&Region==compare_region,]
@@ -479,19 +545,19 @@ server <- function(input, output,session) {
         exposure_text = tolower(input$exposure)
         if (input$subgroup=="All") {
           paste("Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for all", tolower(input$region), "US users.",
-                "Exposure metrics include the daily maximum smoke density the day of and day prior to gameplay (Lag 0 and Lag 1) and in the 1 and 2 weeks prior to gameplay (1 and 2-Week).")
+                "Exposure metrics include the daily maximum smoke density the day of and day prior to gameplay (Lag 0 and Lag 1) and in the 1 week prior to gameplay (1-Week).")
         } else {
           paste("Change in attention score due to light, medium, or heavy density smoke, relative to no smoke, for", tolower(input$region),"US users by", tolower(subgroup),".",
-                "Exposure metrics include the daily maximum smoke density the day of and day prior to gameplay (Lag 0 and Lag 1) and in the 1 and 2 weeks prior to gameplay (1 and 2-Week).")
+                "Exposure metrics include the daily maximum smoke density the day of and day prior to gameplay (Lag 0 and Lag 1) and in the 1 week prior to gameplay (1-Week).")
         }  
       } else {
         exposure_text = input$exposure
         if (input$subgroup=="All") {
-          paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> for all", region, "US users.",
+          paste("Change in attention score associated with a 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> for all", region, "US users.",
                 "Exposure metrics include the maximum population-weighted hourly average PM<sub>2.5</sub> in the 3 and 12 hours prior to gameplay (3 and 12-Hour Max), the population-weighted daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), and the cumulative population-weighted daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative)."
           )
         } else {
-          paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> for", region,"US users by", tolower(subgroup),".",
+          paste("Change in attention score associated with a 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> for", region,"US users by", tolower(subgroup),".",
                 "Exposure metrics include the maximum population-weighted hourly average PM<sub>2.5</sub> in the 3 and 12 hours prior to gameplay (3 and 12-Hour Max), the population-weighted daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), and the cumulative population-weighted daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative)."
           )
         }  
@@ -517,11 +583,11 @@ server <- function(input, output,session) {
     if (input$exposure == "PM2.5") {
       exposure_text = input$exposure
       if (input$subgroup=="All") {
-        paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in daily PM<sub>2.5</sub> for all", region, "US users.",
+        paste("Change in attention score associated with a 10 &microg/m<sup>3</sup> increase in daily PM<sub>2.5</sub> for all", region, "US users.",
               "Exposure metrics include the population-weighted daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), the 1-6 days prior to gameplay (Lag 1-6), and the cumulative population-weighted daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative)."
         )
       } else {
-        paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in daily PM<sub>2.5</sub> for", region,"US users by", tolower(subgroup),".",
+        paste("Change in attention score associated with a 10 &microg/m<sup>3</sup> increase in daily PM<sub>2.5</sub> for", region,"US users by", tolower(subgroup),".",
               "Exposure metrics include the population-weighted daily average PM<sub>2.5</sub> the day of gameplay (Lag 0), the 1-6 days prior to gameplay (Lag 1-6), and the cumulative population-weighted daily average PM<sub>2.5</sub> in the 7 days prior to gameplay (7-Day Cumulative).")
       }  
     } 
@@ -545,10 +611,10 @@ server <- function(input, output,session) {
     if (input$exposure == "PM2.5") {
       exposure_text = input$exposure
       if (input$subgroup=="All") {
-        paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in sub-daily PM<sub>2.5</sub> for all", region, "US users.",
+        paste("Change in attention score associated with a 10 &microg/m<sup>3</sup> increase in sub-daily PM<sub>2.5</sub> for all", region, "US users.",
               "Exposure metrics include the maximum population-weighted hourly average PM<sub>2.5</sub> in the 3, 6, and 12 hours prior to gameplay (3, 6 and 12-Hour Max).")
       } else {
-        paste("Change in attention score per 10 &microg/m<sup>3</sup> increase in sub-daily PM<sub>2.5</sub> for", region,"US users by", tolower(subgroup),".",
+        paste("Change in attention score associated with a 10 &microg/m<sup>3</sup> increase in sub-daily PM<sub>2.5</sub> for", region,"US users by", tolower(subgroup),".",
               "Exposure metrics include the maximum population-weighted hourly average PM<sub>2.5</sub> in the 3, 6, and 12 hours prior to gameplay (3, 6 and 12-Hour Max).")
       }  
     } 
@@ -588,6 +654,11 @@ server <- function(input, output,session) {
       table_data <- primary[Exposure==input$exposure&(GroupType==input$subgroup|GroupType=="All")&Region==input$region,]
     }
     table_data$Beta <- as.numeric(sprintf("%.2f",table_data$Beta))
+    
+    if (input$subgroup == "Age") {
+      table_data[table_data$Group=="70+",]$Group <- "\u2265 70"
+    } 
+    
     if (input$exposure == "PM2.5") {
       if (input$tabset1=="Primary") {
         table_data <- table_data[ExposureDuration %in% c("7-Day Cumulative","Lag 0","12-Hour Max","3-Hour Max")]
@@ -600,6 +671,7 @@ server <- function(input, output,session) {
       names(table_data)[names(table_data) == "ExposureDuration"] <- "Exposure Duration"
       datatable(table_data[,c("Exposure","Region","Exposure Duration","Group","Beta","95% CI","P-Value","# Users")], selection = 'none',options = list(paging = FALSE),escape=FALSE) 
     } else {
+      table_data <- table_data[table_data$ExposureDuration != "2-Week Max",]
       names(table_data)[names(table_data) == "ExposureDuration"] <- "Exposure Duration"
       names(table_data)[names(table_data) == "ExposureLevel"] <- "Exposure Level"
       datatable(table_data[,c("Exposure","Region","Exposure Duration","Exposure Level","Group","Beta","95% CI","P-Value","# Users")], 
@@ -609,7 +681,7 @@ server <- function(input, output,session) {
   
   ##################### SENSITIVITY RESULTS #########################################
   observeEvent (input$analyses_sens, {
-    if(input$analyses_sens %in% c("ScorePctile","UserDefPlay","UserDefDate","Habit")){ 
+    if(input$analyses_sens %in% c("ScorePctile","UserDefPlay","UserDefDate","Habit","ModelFit")){ 
       shinyjs::enable("exposure_sens")
     } else {
       shinyjs::disable("exposure_sens")
@@ -636,7 +708,7 @@ server <- function(input, output,session) {
   })
   
   output$sens_info_text2 <- renderText({
-    paste("<i>Note:</i> Results for smoke exposure are only available for the western US. For the 'non-linear relationship' and 'number of lags' sensitivity analyses, results are only available for PM<sub>2.5</sub>.")
+    paste("<i>Note:</i> Results for smoke exposure are only available for the western US. For the 'nonlinear relationship' and 'number of lags' sensitivity analyses, results are only available for PM<sub>2.5</sub>.")
   })
   
   output$sens_table_title <- renderText({
@@ -660,42 +732,50 @@ server <- function(input, output,session) {
       text_part2 <- paste("to the user inclusion criteria.<br><br>",
                           "The primary analyses were restricted to users who completed 20 plays across 20 unique dates.",
                           "This sensitivity analysis evaluated the impact of relaxing the user inclusion criteria to include users who completed 20 plays across less than 20 unique dates (e.g., users who completed 20 plays across 15+ unique dates).",
-                          "To allow for comparison, we only included a users first play on any given date (e.g., if play 4-6 occurred on one date, only play 4 is included in the analysis).",
-                          "As shown, relaxing the user inclusion criteria results in a slight attenutation of the observed effects."
+                          "To allow for comparison, we only included a user's first play on any given date (e.g., if play 4-6 occurred on one date, only play 4 is included in the analysis).",
+                          "As shown, relaxing the user inclusion criteria resulted in a slight attenuation of the observed associations."
       )
     } else if (input$analyses_sens == "UserDefPlay") {
       text_part2 <- paste("to the user inclusion criteria. <br><br>",
                           "The primary analyses were restricted to users who completed 20 plays across 20 unique dates.",
                           "This sensitivity analysis evaluated the impact of relaxing the user inclusion criteria to include users who completed less than 20 plays.",
                           "To allow for comparison, users still must have played each game across unique dates (e.g., a user with 18 plays must have completed the plays across 18 unique dates).",
-                          "As shown, relaxing the user inclusion criteria results in attenutation of the observed effects. The attenutation increases with more relaxed inclusion criteria."
+                          "As shown, relaxing the user inclusion criteria resulted in attenuation of the observed associations. The attenuation increased with more relaxed inclusion criteria."
       )
     } else if (input$analyses_sens == "Lags") {
       text_part2 <- paste("to the number of lags included in the distributed lag model. <br><br>",
                           "The primary analyses for daily PM<sub>2.5</sub> included 7 lags of population-weighted PM<sub>2.5</sub>.",
-                          "This sensitivity analysis evaluated the impact of including 1-6 lags, instead of 7, on the observed effect at lag 0 and the n-day cumulative effect.",
-                          "The cumulative effect is calculated from all lags included in the model (e.g., if 5 lags are included, the value shown is the 5-day cumulative effect).",
-                          "As shown, the results are not sensitive to the number of lags included in the distributed lag model."
+                          "This sensitivity analysis evaluated the impact of including 1-6 lags, instead of 7, on the observed association at lag 0 and the n-day cumulative association.",
+                          "The cumulative association was calculated from all lags included in the model (e.g., if 5 lags are included, the value shown is the 5-day cumulative association).",
+                          "As shown, the results were not sensitive to the number of lags included in the distributed lag model."
       )
     } else if (input$analyses_sens == "Habit") {
       text_part2 <- paste("to the definition of habitual users. <br><br>",
                           "In the primary analyses, habitual behavior was defined as users whose median time between plays was &#8804 7 days and standard deviation for the time-of-day played was &#8804 2 hours.",
                           "This sensitivity analysis considered alternative definitions of habitual users, changing either the cutoff for the median time between plays (14 days instead of 7)",
                           "or the cutoff for the standard deviation for time-of-day played (3 or 4 hours instead of 2).",
-                          "As shown, when different definitions of habitual behavior are used, habitual users are still more affected than non-habitual users, though the differences between the two groups are less pronounced."
+                          "As shown, when different definitions of habitual behavior were used, habitual users were still more affected than non-habitual users, though the differences between the two groups were less pronounced."
       )
     } else if (input$analyses_sens == "Spline") {
-      text_part1 <-  paste("Non-linear association between daily PM<sub>2.5</sub> and attention score in the",tolower(input$region_sens),"US.<br><br>")
-      text_part2<-paste("This sensitivity analysis considered the possibility of a non-linear association between daily PM<sub>2.5</sub> and attention score. Cubic splines were fit to all 7 lags and",
-                        "results are shown for the lag 0 and 7-day cumulative effects.",
-                        "As shown, the effects of PM<sub>2.5</sub> are largely null and remain relatively constant at concentrations greater than 5 &microg/m<sup>3</sup>, providing insufficient evidence for a nonlinear association between PM<sub>2.5</sub> and attention score."
+      text_part1 <-  paste("Nonlinear association between daily PM<sub>2.5</sub> and attention score in the",tolower(input$region_sens),"US.<br><br>")
+      text_part2<-paste("This sensitivity analysis considered the possibility of a nonlinear association between daily PM<sub>2.5</sub> and attention score. Cubic splines were fit to all 7 lags and",
+                        "results are shown for the lag 0 and 7-day cumulative associations.",
+                        "As shown, the associations across all concentrations were null with wide confidence intervals, indicating that we do not have the power to detect a nonlinear association."
       )
     } else if (input$analyses_sens == "ScorePctile") {
       text_part2 <- paste("to the type of score used. <br><br>",
                           "This sensitivity analysis evaluated the impact of using the percentile score as the measure of <i>Lost in Migration</i> performance",
-                          "instead of the raw score. As shown, the results using percentile score are largely consistent with our primary findings, though slightly attenuated in the contiguous US."
+                          "instead of the raw score. As shown, the results using percentile score were largely consistent with our primary findings, though slightly attenuated in the contiguous US."
       )
-    } else {
+    } else if (input$analyses_sens == "ModelFit") {
+      text_part2 <- paste("to the covariate model specification. <br><br>",
+                          "This sensitivity analysis evaluated the impact of reducing the number of covariate and interaction terms included in the model.",
+                          "The 'No Covariates, No Interactions' model only included the exposure variable(s), the log(n) variable, and the third order autoregression.",
+                          "The 'Covariates, No Interactions' model included all covariates but no interactions between the log(n), age group, and device variables.",
+                          "The 'Covariates, Interactions' model is the model used in the primary analyses and includes all covariates and interactions.",
+                          "As shown, the results were not sensitive to the covariates and interactions specified specified, indicating that our models were not over-adjusted."
+      )                
+    }else {
       text_part2<-""      
     }
     paste(text_part1,text_part2)
@@ -731,6 +811,9 @@ server <- function(input, output,session) {
           if (input$analyses_sens == "UserDefDate") {
             plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("5dates","10dates","15dates"))
           }
+          if (input$analyses_sens == "ModelFit") {
+            plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("NoCoef","NoInt"))
+          }
           if (input$analyses_sens == "UserDefPlay") {
             if (input$region_sens == "Contiguous") {
               plot_data <- plot_data[plot_data$SpecificAnalysis!="5plays",]
@@ -753,7 +836,7 @@ server <- function(input, output,session) {
             plot_data[Sensitivity == "HabitDefNonhabitual",]$Sensitivity <- "Non-habitual"
             compare_data <- primary[GroupType=="Habit"&Exposure==input$exposure_sens&Region==input$region_sens,]
             compare_data <- compare_data %>% 
-              rename(
+              dplyr::rename(
                 SpecificAnalysis = GroupType,
                 Sensitivity = Group
               )
@@ -774,7 +857,7 @@ server <- function(input, output,session) {
             compare_data$GroupType <- rep("Primary Result",nrow(compare_data))
             compare_data$Group <- rep("All",nrow(compare_data))
             compare_data <- compare_data %>% 
-              rename(
+              dplyr::rename(
                 Sensitivity = GroupType,
                 SpecificAnalysis = Group
               )
@@ -817,7 +900,7 @@ server <- function(input, output,session) {
                                                                          "7 days, 4 hours","14 days, 2 hours"),
                                  values = c("black","#8A9045FF","#155F83FF","#C16622FF")) +
               scale_alpha_manual(name="User Type",values=c(1,0.5)) +
-              scale_shape_manual(name="User Type",values=c(16,17))
+              scale_shape_manual(name="User Type",values=c(shape_reg,17))
             
           } else if (input$analyses_sens == "UserDefDate") {
             plot + scale_color_manual(name = "# Unique Dates", labels = c("5+ Dates","10+ Dates","15+ Dates","20 Dates"),
@@ -830,6 +913,9 @@ server <- function(input, output,session) {
               plot + scale_color_manual(name = "# Plays", labels = c("5+ Plays","10+ Plays","15+ Plays","20 Plays"),
                                         values = c("#117733","#88CCEE","#AA4499","black"))
             }
+          } else if (input$analyses_sens == "ModelFit") {
+            plot + scale_color_manual(name = "Covariate Model Specification", labels = c("No Covariates, No Interaction","Covariatates, No Interaction","Covariates, Interaction"),
+                                      values = c("yellowgreen","firebrick","black"))
           } else if (input$analyses_sens == "Lags") {
             plot + scale_color_manual(name = "# Lags Included", labels = c("1 Lag","2 Lags","3 Lags","4 Lags", "5 Lags","6 Lags","7 Lags"),
                                       values = c("#AE76A3","#5289C7","#90C987","#F1932D","#DC050C","#FFAABB","black")) +
@@ -879,9 +965,10 @@ server <- function(input, output,session) {
           
         }
       } else { # SMOKE
+        plot_data <- plot_data[plot_data$ExposureDuration != "2-Week Max",]
         plot_data$ExposureLevel = factor(plot_data$ExposureLevel, levels=c('Light','Medium','Heavy'))
-        plot_data$ExposureDuration = factor(plot_data$ExposureDuration,levels=c("Lag 0","Lag 1","1-Week Max", "2-Week Max"))
-        levels(plot_data$ExposureDuration) <- c("Lag 0","Lag 1","1-Week","2-Week")
+        plot_data$ExposureDuration = factor(plot_data$ExposureDuration,levels=c("Lag 0","Lag 1","1-Week Max"))
+        levels(plot_data$ExposureDuration) <- c("Lag 0","Lag 1","1-Week")
         
         if (input$analyses_sens == "UserDefDate") {
           plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("5dates","10dates","15dates"))
@@ -892,6 +979,8 @@ server <- function(input, output,session) {
           } else {
             plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("5plays","10plays","15plays"))
           }
+        } else if (input$analyses_sens =="ModelFit") {
+          plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("NoCoef","NoInt"))
         } else if (input$analyses_sens == "Habit") {
           plot_data$SpecificAnalysis = factor(plot_data$SpecificAnalysis,levels=c("7days_2hours",
                                                                                   "7days_3hours",
@@ -905,7 +994,7 @@ server <- function(input, output,session) {
           plot_data <- plot_data[SpecificAnalysis != "7days_2hours",]
           compare_data <- primary[GroupType=="Habit"&Exposure==input$exposure_sens&Region==input$region_sens,]
           compare_data <- compare_data %>% 
-            rename(
+            dplyr::rename(
               SpecificAnalysis = GroupType,
               Sensitivity = Group
             )
@@ -919,14 +1008,15 @@ server <- function(input, output,session) {
           
           
           compare_data <- compare_data %>% 
-            rename(
+            dplyr::rename(
               Sensitivity = GroupType,
               SpecificAnalysis = Group
             )
         }
         
-        compare_data$ExposureDuration = factor(compare_data$ExposureDuration,levels=c("Lag 0","Lag 1","1-Week Max", "2-Week Max"))
-        levels(compare_data$ExposureDuration) <- c("Lag 0","Lag 1","1-Week","2-Week")
+        compare_data <- compare_data[compare_data$ExposureDuration != "2-Week Max",]
+        compare_data$ExposureDuration = factor(compare_data$ExposureDuration,levels=c("Lag 0","Lag 1","1-Week Max"))
+        levels(compare_data$ExposureDuration) <- c("Lag 0","Lag 1","1-Week")
         
         plot_data <- rbind(plot_data,compare_data)
         
@@ -964,6 +1054,10 @@ server <- function(input, output,session) {
                                       values = c("#117733","#88CCEE","#AA4499","black")) +
               theme(axis.text.x=element_text(angle=30,hjust=1))
           }
+        } else if (input$analyses_sens == "ModelFit") {
+          plot + scale_color_manual(name = "Covariate Model Specification", labels = c("No Covariates, No Interaction","Covariatates, No Interaction","Covariates, Interaction"),
+                                    values = c("yellowgreen","firebrick","black")) +
+            theme(axis.text.x=element_text(angle=30,hjust=1))
         } else if (input$analyses_sens == "ScorePctile") {
           plot + 
             facet_grid(SpecificAnalysis~ExposureLevel,scales="free") + 
@@ -1046,11 +1140,15 @@ server <- function(input, output,session) {
         }
       }
       compare_data <- compare_data %>% 
-        rename(
+        dplyr::rename(
           Sensitivity = GroupType,
           SpecificAnalysis = Group
         )
       table_data <- rbind(table_data,compare_data)
+      
+      if (input$exposure_sens == "Smoke") {
+        table_data <- table_data[table_data$ExposureDuration != "2-Week Max",]
+      }
       
       table_data$Analysis <- rep("Primary",nrow(table_data))
       
@@ -1098,6 +1196,12 @@ server <- function(input, output,session) {
         table_data[Analysis=="Sensitivity"&SpecificAnalysis=="lags6"]$SpecificAnalysis <- rep("6 Lags",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="lags6",]))
         names(table_data)[names(table_data) == "SpecificAnalysis"] <- "# of Lags"
         cols <- c(cols[1:2],"# of Lags",cols[3:length(cols)])
+      } else if (input$analyses_sens == "ModelFit") {
+        table_data[Analysis=="Primary"]$SpecificAnalysis <- rep("Covariates, Interaction",nrow(table_data[Analysis=="Primary",]))
+        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="NoInt"]$SpecificAnalysis <- rep("Covariates, No Interaction",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="NoInt",]))
+        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="NoCoef"]$SpecificAnalysis <- rep("No Covariates, No Interaction",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="NoCoef",]))
+        names(table_data)[names(table_data) == "SpecificAnalysis"] <- "Covariate Model Specification"
+        cols <- c(cols[1:2],"Covariate Model Specification",cols[3:length(cols)])
       } else if (input$analyses_sens == "Habit") {
         table_data[SpecificAnalysis=="14days_2hours"]$SpecificAnalysis <- rep("14 Days, 2 hours",nrow(table_data[SpecificAnalysis=="14days_2hours",]))
         table_data[SpecificAnalysis=="7days_4hours"]$SpecificAnalysis <- rep("7 Days, 4 hours",nrow(table_data[SpecificAnalysis=="7days_4hours",]))
@@ -1281,7 +1385,7 @@ server <- function(input, output,session) {
   
   output$lum_info_text2 <- renderText({
     paste("<i>Note:</i> Up to 2 subgroups may be selected at a time in the 'Learning Curves' tab.",
-          "In the 'User Characteristics' tab, only 1 subgroup may be selected at a time." )
+          "In the 'User Characteristics' and 'Attention Scores' tabs, only 1 subgroup may be selected at a time." )
   })
   
   output$lumosity_text <- renderText({
@@ -1297,16 +1401,16 @@ server <- function(input, output,session) {
         subgroup_lum2 <- input$subgroup_lum2
       }
       if (input$subgroup_lum == "All" & input$subgroup_lum2 == "None") {
-        paste("Average learning curve across 20 plays of <i>Lost in Migration</i> for all",tolower(input$region_lum),"US users.")
+        paste("Average learning curve (95% CI) across 20 plays of <i>Lost in Migration</i> for all",tolower(input$region_lum),"US users.")
       } else if (input$subgroup_lum == input$subgroup_lum2 || 
                  (input$subgroup_lum == "All" || input$subgroup_lum2 == "None")) {
         if (input$subgroup_lum != "All") {
-          paste0("Average learning curve across 20 plays of <i>Lost in Migration</i> for ",tolower(input$region_lum)," US users by ", tolower(subgroup_lum),".")
+          paste0("Average learning curves (95% CI) across 20 plays of <i>Lost in Migration</i> for ",tolower(input$region_lum)," US users by ", tolower(subgroup_lum),".")
         } else {
-          paste0("Average learning curve across 20 plays of <i>Lost in Migration</i> for ",tolower(input$region_lum)," US users by ", tolower(subgroup_lum2),".")
+          paste0("Average learning curves (95% CI) across 20 plays of <i>Lost in Migration</i> for ",tolower(input$region_lum)," US users by ", tolower(subgroup_lum2),".")
         }
       } else {
-        paste0("Average learning curve across 20 plays of <i>Lost in Migration</i> for ",tolower(input$region_lum)," US users by ", tolower(subgroup_lum),
+        paste0("Average learning curves (95% CI) across 20 plays of <i>Lost in Migration</i> for ",tolower(input$region_lum)," US users by ", tolower(subgroup_lum),
                " and ",tolower(subgroup_lum2),".")
       }
     }
@@ -1353,22 +1457,43 @@ server <- function(input, output,session) {
       primary_palette[9,2] <- temp
     }
     
-    
     if (input$subgroup_lum2 == "None" || input$subgroup_lum==input$subgroup_lum2 ||
         (input$subgroup_lum == "All" && input$subgroup_lum2 != "None")) {
-      ggplot(data=plot_data, aes(x=nth_play_factor, y=score_raw, group=var1,color=var1)) +
+      plot <- ggplot(data=plot_data, aes(x=nth_play_factor, y=score_raw_mean, 
+                                         ymin=score_raw_lower, ymax = score_raw_upper,
+                                         group=var1,color=var1,fill=var1)) +
         geom_line(size=1.25) +
+        geom_ribbon(alpha=0.15,colour = NA) +
         scale_x_discrete(name="Nth Play")+
-        scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2])) +
-        scale_y_continuous(name="Raw Score",breaks=c(6000,9400,12800,16200,19600,23000),limits=c(6000,23000)) + 
-        theme_bw(base_size=14)
+        scale_y_continuous(name="Raw Score",breaks=c(6000,9400,12800,16200,19600,23000))+
+        theme_bw(base_size=14) +
+        theme(
+          panel.grid.major.x = element_blank() ,
+          panel.grid.major.y = element_line(size=.1, color="grey90" ),
+          panel.grid.minor.x = element_blank()
+        )
+      if (input$subgroup_lum=="Age"||input$subgroup_lum2=="Age") {
+        plot <- plot +         
+          scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u2265 70")) +
+          scale_fill_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u2265 70")) 
+      } else {
+        plot <- plot +         
+          scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2])) +
+          scale_fill_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2])) 
+      }
+      
+      plot <- plot + coord_cartesian(ylim = c(6000, 23000)) 
     } else {
-      ggplot(data=plot_data, aes(x=nth_play_factor, y=score_raw, group=var1,color=var1)) +
+      plot <- ggplot(data=plot_data, aes(x=nth_play_factor, y=score_raw_mean,
+                                         ymin=score_raw_lower, ymax=score_raw_upper,
+                                         group=var1,color=var1,fill=var1)) +
         geom_line(size=1.25) +
+        geom_ribbon(alpha=0.15,colour = NA) +
         scale_x_discrete(name="Nth Play")+
-        scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2])) +
-        scale_y_continuous(name="Raw Score",breaks=c(6000,9400,12800,16200,19600,23000),limits=c(6000,23000)) + 
-        theme_bw(base_size=14)+ facet_wrap(~var2) + 
+        scale_y_continuous(name="Raw Score",breaks=c(6000,9400,12800,16200,19600,23000)) + 
+        theme_bw(base_size=14) + 
         theme(
           strip.placement = "outside",                    
           strip.background = element_rect(fill = "white",color="black"),
@@ -1378,7 +1503,31 @@ server <- function(input, output,session) {
           panel.grid.minor.x = element_blank()
         )
       
+      if (input$subgroup_lum=="Age") {
+        plot <- plot +        
+          scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u2265 70")) +
+          scale_fill_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u2265 70")) +
+          facet_wrap(~var2) 
+      } else if (input$subgroup_lum2=="Age") {
+        supp.labs <- c("18-29", "30-39","40-49","50-59","60-69","\u2265 70")
+        names(supp.labs) <- c("18-29", "30-39","40-49","50-59","60-69","70+")
+        plot <- plot +         
+          scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2])) +
+          scale_fill_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2])) +
+          facet_wrap(~var2, labeller = labeller(var2=supp.labs))
+      } else {
+        plot <- plot +
+          scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2])) +
+          scale_fill_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2])) +
+          facet_wrap(~var2) 
+        
+      }
+      plot <- plot + coord_cartesian(ylim = c(6000, 23000)) 
+      
     }
+    plot
     
   })
   
@@ -1390,12 +1539,14 @@ server <- function(input, output,session) {
       table_data <- table1_west
     }
     
+    
     if (input$subgroup_lum == "Gender") {
       table_data <- table_data[!(rownames(table_data)%in%rownames(table_data)[c(2)]),]
       table_data <- table_data[,c("All","Male","Female")]
     } else if (input$subgroup_lum == "Age") {
       table_data <- table_data[!(rownames(table_data)%in%rownames(table_data)[c(13:19)]),]
       table_data <- table_data[,c("All","18-29","30-39","40-49","50-59","60-69","70+")]
+      colnames(table_data)[colnames(table_data) == "70+"] <-  "\u2265 70"
     } else if (input$subgroup_lum == "Habit") {
       table_data <- table_data[!(rownames(table_data)%in%rownames(table_data)[c(25)]),]
       table_data <- table_data[,c("All","Habitual","Non-habitual")]
@@ -1420,6 +1571,8 @@ server <- function(input, output,session) {
     
     rownames(table_data)[rownames(table_data) == "<i>Lumosity Score, mean (SD)</i>"] <- "<i>Lost in Migration Score, mean (SD)</i>"
     
+    rownames(table_data)[rownames(table_data) == "   70+"] <-  "   \u2265 70"
+    
     rownames(table_data) <- gsub(' ', '&nbsp', rownames(table_data))
     
     
@@ -1428,21 +1581,119 @@ server <- function(input, output,session) {
               escape = FALSE)
   })
   
+  output$lumosity_hist <- renderPlot ({
+    if (input$region_lum == "Contiguous") {
+      plot_data <- hist_data
+    } else {
+      plot_data <- hist_data[hist_data$STATE %in% state_west,]
+    }
+    
+    if (input$playn != "All") {
+      plot_data <- plot_data[plot_data$nth_play == as.numeric(input$playn),]
+    }
+    
+    
+    if (input$subgroup_lum=="Age") {
+      plot_data <- plot_data[,c("score_raw","nth_play","age_group")] 
+    } else if (input$subgroup_lum=="Gender") {
+      plot_data <- plot_data[,c("score_raw","nth_play","gender")] 
+    } else if (input$subgroup_lum=="Habit") {
+      plot_data <- plot_data[,c("score_raw","nth_play","habit")] 
+    } else if (input$subgroup_lum=="Device") {
+      plot_data <- plot_data[,c("score_raw","nth_play","device")] 
+    }
+    
+    if (input$subgroup_lum!="All") {
+      
+      names(plot_data) <- c("score_raw","nth_play","var1")
+      
+      plot <- ggplot(data=plot_data, aes(score_raw, color=var1,group=var1,fill=var1)) +
+        geom_histogram(binwidth=1000,na.rm=T,alpha=0.6) + xlim(0,41000) +
+        xlab("Raw Score") + ylab ("# Plays") + theme_bw(base_size=14)+ 
+        theme(
+          strip.placement = "outside",                    
+          strip.background = element_rect(fill = "white",color="black"),
+          strip.text.y.left = element_text(size = 12,angle=0)) 
+      if (input$subgroup_lum=="Age") {
+        supp.labs <- c("18-29", "30-39","40-49","50-59","60-69","\u2265 70")
+        names(supp.labs) <- c("18-29", "30-39","40-49","50-59","60-69","70+")
+        
+        plot <- plot + 
+          facet_wrap(~var1,labeller = labeller(var1=supp.labs)) +
+          scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u2265 70")) +
+          scale_fill_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
+                            labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u2265 70")) 
+        
+      } else {
+        plot <- plot + facet_wrap(~var1) +
+          scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2])) +
+          scale_fill_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2])) 
+        
+      }
+      
+      
+    } else {
+      
+      plot <- ggplot(data=plot_data, aes(score_raw)) +
+        geom_histogram(binwidth=1000,fill="black",color="black",alpha=0.5,na.rm=T) + xlim(0,41000) +
+        xlab("Raw Score") + ylab ("# Plays") + theme_bw(base_size=14) 
+    }
+    
+    if (input$playn != "All") {
+      plot <- plot +
+        annotate("text",  x=Inf, y = Inf, label = paste0("Play #",input$playn), vjust=1.6, hjust=1.2)      
+    } else {
+      plot <- plot +
+        annotate("text",  x=Inf, y = Inf, label = "All 20 Plays", vjust=1.6, hjust=1.2)      
+    }
+    plot
+    
+    
+    
+  })
+  
+  output$lumosity_hist_text <- renderText({
+    if(input$tabset_lum == "Attention Scores"){
+      if (input$subgroup_lum == "Habit") {
+        subgroup_lum <- "habitual behavior"
+      } else {
+        subgroup_lum <- input$subgroup_lum
+      }
+      if (input$subgroup_lum == "All") {
+        if (input$playn == "All") {
+          paste("Distribution of the raw attention scores for all 20 plays of the ",tolower(input$region_lum),"US study population.")
+        } else {
+          paste("Distribution of the raw attention scores on play #", input$playn, " of the ",tolower(input$region_lum),"US study population.")
+        }
+      } else {
+        if (input$playn == "All") {
+          paste0("Distribution of the raw attention scores for all 20 plays of the ",tolower(input$region_lum)," US study population by ", tolower(subgroup_lum),".")
+          
+        } else {
+          paste0("Distribution of the raw attention scores on play #", input$playn, " of the ",tolower(input$region_lum)," US study population by ", tolower(subgroup_lum),".")
+          
+        }
+        
+      }
+    }
+  })
+  
   ##################################################################
   ################# ABOUT TEXT ####################################
   output$about_text <- renderText({
-    paste("This dashboard is associated with the manuscript <b><i>The Effects of Short-Term Wildfire Smoke and PM<sub>2.5</sub> Exposure on Cognitive Performance in US Adults.</i></b>",
+    paste("This dashboard is associated with the manuscript <b><i>Short-Term Exposure to Wildfire Smoke and PM<sub>2.5</sub> and Cognitive Performance in a Brain-Training Game: A Longitudinal Study of US Adults.</i></b>",
           " It allows for interaction with the manuscript's primary results ('Primary Results' tab), as well as the exposure surfaces and Lumosity study population data",
           " used in the analyses ('Exposure Surfaces' and 'Lumosity User Data' tabs, respectively). It also provides information on and results for all sensitivity analyses conducted ('Sensitivity Analyses' tab). <br><br>",
           "The BME data fusion estimates of daily and hourly average PM<sub>2.5</sub> at census tract population centers across the contiguous US can be downloaded <a href='https://doi.org/10.15139/S3/Z9WSWC' target='_blank'>here</a>. <br><br> ",
           "The ZIP3-level daily maximum smoke density and population-weighted daily and hourly average PM<sub>2.5</sub> exposure data can be downloaded at <a href='https://doi.org/10.23719/1523337' target='_blank'>here</a>. <br><br>",
           "For any questions, please email: <a href = 'mailto: cleland.stephanie@epa.gov'>cleland.stephanie@epa.gov</a> or <a href = 'mailto: rappold.ana@epa.gov'>rappold.ana@epa.gov</a>.<br><br>",
           "<b>Abstract</b><br>",
-          "<i>Background.</i> There is increasing evidence that fine particulate matter (PM<sub>2.5</sub>) adversely impacts cognitive performance. Today, wildfire smoke is one of the biggest sources of PM<sub>2.5</sub>, but little is known about how short-term exposure affects cognitive function.",
-          "<br><i>Objectives.</i> We aimed to evaluate the cognitive effects of daily and sub-daily PM<sub>2.5</sub> and wildfire smoke exposure in adults.",
-          "<br><i>Methods.</i> Scores from a brain-training game designed to measure attention were obtained for 10,228 adults in the contiguous United States (US). We estimated daily and sub-daily PM<sub>2.5</sub> exposure through a data fusion of observations from US Environmental Protection Agency and PurpleAir monitors. Daily smoke exposure in the western US was obtained from estimates of smoke plume density using satellite images. We used a longitudinal repeated measures design with linear mixed effects models to test for associations between short-term exposure metrics and attention score, overall and by age, gender, user behavior, and region.",
-          "<br><i>Results.</i> All measures of daily and sub-daily PM<sub>2.5</sub> exposure were negatively associated with attention score. A 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> the day of gameplay was associated with a 26.4 [-47.9, -4.9] point decrease in score, with an estimated average 4% reduction in final score associated with exposure. The effects were most pronounced in the wildfire-impacted western US and in habitual, younger (18-29), and older (70+) users, with no observed differences by gender. The presence of medium and heavy smoke density in the days and weeks prior to play were also negatively associated with score. Heavy smoke density the day prior to gameplay was associated with a 117.0 [-232.3, -1.7] point decrease in score relative to no smoke. Younger (18-29), habitual, and male users were most affected.", 
-          "<br><i>Discussion.</i> Our results indicate that short-term exposure to PM<sub>2.5</sub> and wildfire smoke adversely impacts attention in adults, but further research is needed to elucidate these relationships.",
+          "<i>Background.</i> There is increasing evidence that long-term exposure to fine particulate matter (PM<sub>2.5</sub>) may adversely impact cognitive performance. Wildfire smoke is one of the biggest sources of PM<sub>2.5</sub> and concentrations are likely to increase under climate change. However, little is known about how short-term exposure impacts cognitive function.",
+          "<br><i>Objectives.</i> We aimed to evaluate the associations between daily and sub-daily (hourly) PM<sub>2.5</sub> and wildfire smoke exposure and cognitive performance in adults.",
+          "<br><i>Methods.</i> Scores from 20 plays of an attention-oriented brain-training game were obtained for 10,228 adults in the United States (US). We estimated daily and hourly PM<sub>2.5</sub> exposure through a data fusion of observations from multiple monitoring networks. Daily smoke exposure in the western US was obtained from satellite-derived estimates of smoke plume density. We used a longitudinal repeated measures design with linear mixed effects models to test for associations between short-term exposure and attention score. Results were also stratified by age, gender, user behavior, and region.",
+          "<br><i>Results.</i> Daily and sub-daily PM<sub>2.5</sub> were negatively associated with attention score. A 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> in the 3 hours prior to gameplay was associated with a 21.0 [3.3, 38.7] point decrease in score. Same-day exposure was associated with an estimated average 4% reduction in 20th play score. Associations were more pronounced in the wildfire-impacted western US. Medium and heavy smoke density were also negatively associated with score. Heavy smoke density the day prior to gameplay was associated with a 117.0 [1.7, 232.3] point decrease in score relative to no smoke. Although differences between subgroups were not statistically significant, associations were most pronounced for younger (18-29), older (&#8805;70), habitual, and male users.", 
+          "<br><i>Discussion.</i> Our results indicate that PM<sub>2.5</sub> and wildfire smoke are associated with reduced attention in adults within hours and days of exposure, but further research is needed to elucidate these relationships.",
           "<br><br>",
           "<b>Authors:</b> Stephanie E. Cleland, Lauren H. Wyatt, Linda Wei, Naman Paul, Marc L. Serre, J. Jason West, Sarah B. Henderson, Ana G. Rappold")
   })
