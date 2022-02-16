@@ -9,6 +9,7 @@ library(tigris)
 library(dplyr)
 library(gridExtra)
 
+#rsconnect::setAccountInfo(name='ehs-bccdc', token='97AF057AFE004D437580E714778AAAA1', secret='kdTRe2jWo1rPRdeszOsLYinaZzRoYpLV72Us7mUu')
 
 # Data for Primary results
 primary <- data.table(readRDS("./data/primary_results_full.RDS"))
@@ -315,7 +316,7 @@ server <- function(input, output,session) {
       if (input$subgroup == "Age") {
         plot <- plot+ 
           scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2]),
-                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$Group),1])[1:6],"\u2265 70")
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$Group),1])[1:6],"\u226570")
           ) + 
           scale_shape_manual(name = "Region",
                              values = c(shape),
@@ -374,7 +375,7 @@ server <- function(input, output,session) {
         if (input$subgroup == "Age") {
           plot <- plot+ 
             scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2]),
-                               labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$Group),1])[1:6],"\u2265 70"))
+                               labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$Group),1])[1:6],"\u226570"))
         } else {
           plot <- plot+ scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2])) 
         }
@@ -414,7 +415,7 @@ server <- function(input, output,session) {
       if (input$subgroup == "Age") {
         plot <- plot+ 
           scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2]),
-                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$Group),1])[1:6],"\u2265 70")
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$Group),1])[1:6],"\u226570")
           ) + 
           scale_shape_manual(name = "Region",
                              values = c(shape),
@@ -478,7 +479,7 @@ server <- function(input, output,session) {
       if (input$subgroup == "Age") {
         plot <- plot+ 
           scale_color_manual(values=(primary_palette[primary_palette$Group%in%unique(plot_data$Group),2]),
-                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$Group),1])[1:6],"\u2265 70")
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$Group),1])[1:6],"\u226570")
           ) + 
           scale_shape_manual(name = "Region",
                              values = c(shape),
@@ -656,7 +657,7 @@ server <- function(input, output,session) {
     table_data$Beta <- as.numeric(sprintf("%.2f",table_data$Beta))
     
     if (input$subgroup == "Age") {
-      table_data[table_data$Group=="70+",]$Group <- "\u2265 70"
+      table_data[table_data$Group=="70+",]$Group <- "\u226570"
     } 
     
     if (input$exposure == "PM2.5") {
@@ -731,7 +732,7 @@ server <- function(input, output,session) {
     if (input$analyses_sens == "UserDefDate") {
       text_part2 <- paste("to the user inclusion criteria.<br><br>",
                           "The primary analyses were restricted to users who completed 20 plays across 20 unique dates.",
-                          "This sensitivity analysis evaluated the impact of relaxing the user inclusion criteria to include users who completed 20 plays across less than 20 unique dates (e.g., users who completed 20 plays across 15+ unique dates).",
+                          "This sensitivity analysis evaluated the impact of relaxing the user inclusion criteria to include users who completed 20 plays across less than 20 unique dates (e.g., users who completed 20 plays across \u226515 unique dates).",
                           "To allow for comparison, we only included a user's first play on any given date (e.g., if play 4-6 occurred on one date, only play 4 is included in the analysis).",
                           "As shown, relaxing the user inclusion criteria resulted in a slight attenuation of the observed associations."
       )
@@ -903,14 +904,14 @@ server <- function(input, output,session) {
               scale_shape_manual(name="User Type",values=c(shape_reg,17))
             
           } else if (input$analyses_sens == "UserDefDate") {
-            plot + scale_color_manual(name = "# Unique Dates", labels = c("5+ Dates","10+ Dates","15+ Dates","20 Dates"),
+            plot + scale_color_manual(name = "# Unique Dates", labels = c("\u22655 Dates","\u226510 Dates","\u226515 Dates","20 Dates"),
                                       values = c("#364B9A","#FDD081","#E34D34","black"))
           } else if (input$analyses_sens == "UserDefPlay") {
             if (input$region_sens == "Contiguous") {
-              plot + scale_color_manual(name = "# Plays", labels = c("6+ Plays","10+ Plays","15+ Plays","20 Plays"),
+              plot + scale_color_manual(name = "# Plays", labels = c("\u22656 Plays","\u226510 Plays","\u226515 Plays","20 Plays"),
                                         values = c("#117733","#88CCEE","#AA4499","black"))
             } else {
-              plot + scale_color_manual(name = "# Plays", labels = c("5+ Plays","10+ Plays","15+ Plays","20 Plays"),
+              plot + scale_color_manual(name = "# Plays", labels = c("\u22655 Plays","\u226510 Plays","\u226515 Plays","20 Plays"),
                                         values = c("#117733","#88CCEE","#AA4499","black"))
             }
           } else if (input$analyses_sens == "ModelFit") {
@@ -1041,16 +1042,16 @@ server <- function(input, output,session) {
           xlab("")
         
         if (input$analyses_sens == "UserDefDate") {
-          plot + scale_color_manual(name = "# Unique Dates", labels = c("5+ Dates","10+ Dates","15+ Dates","20 Dates"),
+          plot + scale_color_manual(name = "# Unique Dates", labels = c("\u22655 Dates","\u226510 Dates","\u226515 Dates","20 Dates"),
                                     values = c("#364B9A","#FDD081","#E34D34","black")) +
             theme(axis.text.x=element_text(angle=30,hjust=1))
         } else if (input$analyses_sens == "UserDefPlay") {
           if (input$region_sens == "Contiguous") {
-            plot + scale_color_manual(name = "# Plays", labels = c("6+ Plays","10+ Plays","15+ Plays","20 Plays"),
+            plot + scale_color_manual(name = "# Plays", labels = c("\u22656 Plays","\u226510 Plays","\u226515 Plays","20 Plays"),
                                       values = c("#117733","#88CCEE","#AA4499","black")) +
               theme(axis.text.x=element_text(angle=30,hjust=1))
           } else {
-            plot + scale_color_manual(name = "# Plays", labels = c("5+ Plays","10+ Plays","15+ Plays","20 Plays"),
+            plot + scale_color_manual(name = "# Plays", labels = c("\u22655 Plays","\u226510 Plays","\u226515 Plays","20 Plays"),
                                       values = c("#117733","#88CCEE","#AA4499","black")) +
               theme(axis.text.x=element_text(angle=30,hjust=1))
           }
@@ -1166,9 +1167,9 @@ server <- function(input, output,session) {
       }  else if (input$analyses_sens == "UserDefDate") {
         table_data <- table_data[SpecificAnalysis!="1dates",]
         table_data[Analysis=="Primary"]$SpecificAnalysis <- rep("20 Dates",nrow(table_data[Analysis=="Primary",]))
-        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="5dates"]$SpecificAnalysis <- rep("5+ Dates",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="5dates",]))
-        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="10dates"]$SpecificAnalysis <- rep("10+ Dates",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="10dates",]))
-        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="15dates"]$SpecificAnalysis <- rep("15+ Dates",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="15dates",]))
+        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="5dates"]$SpecificAnalysis <- rep("\u22655 Dates",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="5dates",]))
+        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="10dates"]$SpecificAnalysis <- rep("\u226510 Dates",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="10dates",]))
+        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="15dates"]$SpecificAnalysis <- rep("\u226515 Dates",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="15dates",]))
         names(table_data)[names(table_data) == "SpecificAnalysis"] <- "User Definition"
         cols <- c(cols[1:2],"User Definition",cols[3:length(cols)])
       } else if (input$analyses_sens == "UserDefPlay") {
@@ -1176,14 +1177,14 @@ server <- function(input, output,session) {
         if (input$region_sens == "Contiguous") {
           
           table_data <- table_data[SpecificAnalysis!="5plays",]
-          table_data[Analysis=="Sensitivity"&SpecificAnalysis=="6plays"]$SpecificAnalysis <- rep("6+ Plays",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="6plays",]))
+          table_data[Analysis=="Sensitivity"&SpecificAnalysis=="6plays"]$SpecificAnalysis <- rep("\u22656 Plays",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="6plays",]))
           
         } else {
-          table_data[Analysis=="Sensitivity"&SpecificAnalysis=="5plays"]$SpecificAnalysis <- rep("5+ Plays",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="5plays",]))
+          table_data[Analysis=="Sensitivity"&SpecificAnalysis=="5plays"]$SpecificAnalysis <- rep("\u22655 Plays",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="5plays",]))
         }
         table_data[Analysis=="Primary"]$SpecificAnalysis <- rep("20 Plays",nrow(table_data[Analysis=="Primary",]))
-        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="10plays"]$SpecificAnalysis <- rep("10+ Plays",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="10plays",]))
-        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="15plays"]$SpecificAnalysis <- rep("15+ Plays",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="15plays",]))
+        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="10plays"]$SpecificAnalysis <- rep("\u226510 Plays",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="10plays",]))
+        table_data[Analysis=="Sensitivity"&SpecificAnalysis=="15plays"]$SpecificAnalysis <- rep("\u226515 Plays",nrow(table_data[Analysis=="Sensitivity"&SpecificAnalysis=="15plays",]))
         names(table_data)[names(table_data) == "SpecificAnalysis"] <- "User Definition"
         cols <- c(cols[1:2],"User Definition",cols[3:length(cols)])
       } else if (input$analyses_sens == "Lags") {
@@ -1475,9 +1476,9 @@ server <- function(input, output,session) {
       if (input$subgroup_lum=="Age"||input$subgroup_lum2=="Age") {
         plot <- plot +         
           scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
-                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u2265 70")) +
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u226570")) +
           scale_fill_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
-                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u2265 70")) 
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u226570")) 
       } else {
         plot <- plot +         
           scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2])) +
@@ -1506,12 +1507,12 @@ server <- function(input, output,session) {
       if (input$subgroup_lum=="Age") {
         plot <- plot +        
           scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
-                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u2265 70")) +
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u226570")) +
           scale_fill_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
-                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u2265 70")) +
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u226570")) +
           facet_wrap(~var2) 
       } else if (input$subgroup_lum2=="Age") {
-        supp.labs <- c("18-29", "30-39","40-49","50-59","60-69","\u2265 70")
+        supp.labs <- c("18-29", "30-39","40-49","50-59","60-69","\u226570")
         names(supp.labs) <- c("18-29", "30-39","40-49","50-59","60-69","70+")
         plot <- plot +         
           scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2])) +
@@ -1546,7 +1547,7 @@ server <- function(input, output,session) {
     } else if (input$subgroup_lum == "Age") {
       table_data <- table_data[!(rownames(table_data)%in%rownames(table_data)[c(13:19)]),]
       table_data <- table_data[,c("All","18-29","30-39","40-49","50-59","60-69","70+")]
-      colnames(table_data)[colnames(table_data) == "70+"] <-  "\u2265 70"
+      colnames(table_data)[colnames(table_data) == "70+"] <-  "\u226570"
     } else if (input$subgroup_lum == "Habit") {
       table_data <- table_data[!(rownames(table_data)%in%rownames(table_data)[c(25)]),]
       table_data <- table_data[,c("All","Habitual","Non-habitual")]
@@ -1571,7 +1572,7 @@ server <- function(input, output,session) {
     
     rownames(table_data)[rownames(table_data) == "<i>Lumosity Score, mean (SD)</i>"] <- "<i>Lost in Migration Score, mean (SD)</i>"
     
-    rownames(table_data)[rownames(table_data) == "   70+"] <-  "   \u2265 70"
+    rownames(table_data)[rownames(table_data) == "   70+"] <-  "   \u226570"
     
     rownames(table_data) <- gsub(' ', '&nbsp', rownames(table_data))
     
@@ -1615,15 +1616,15 @@ server <- function(input, output,session) {
           strip.background = element_rect(fill = "white",color="black"),
           strip.text.y.left = element_text(size = 12,angle=0)) 
       if (input$subgroup_lum=="Age") {
-        supp.labs <- c("18-29", "30-39","40-49","50-59","60-69","\u2265 70")
+        supp.labs <- c("18-29", "30-39","40-49","50-59","60-69","\u226570")
         names(supp.labs) <- c("18-29", "30-39","40-49","50-59","60-69","70+")
         
         plot <- plot + 
           facet_wrap(~var1,labeller = labeller(var1=supp.labs)) +
           scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
-                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u2265 70")) +
+                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u226570")) +
           scale_fill_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
-                            labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u2265 70")) 
+                            labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u226570")) 
         
       } else {
         plot <- plot + facet_wrap(~var1) +
@@ -1692,7 +1693,7 @@ server <- function(input, output,session) {
           "<i>Background.</i> There is increasing evidence that long-term exposure to fine particulate matter (PM<sub>2.5</sub>) may adversely impact cognitive performance. Wildfire smoke is one of the biggest sources of PM<sub>2.5</sub> and concentrations are likely to increase under climate change. However, little is known about how short-term exposure impacts cognitive function.",
           "<br><i>Objectives.</i> We aimed to evaluate the associations between daily and sub-daily (hourly) PM<sub>2.5</sub> and wildfire smoke exposure and cognitive performance in adults.",
           "<br><i>Methods.</i> Scores from 20 plays of an attention-oriented brain-training game were obtained for 10,228 adults in the United States (US). We estimated daily and hourly PM<sub>2.5</sub> exposure through a data fusion of observations from multiple monitoring networks. Daily smoke exposure in the western US was obtained from satellite-derived estimates of smoke plume density. We used a longitudinal repeated measures design with linear mixed effects models to test for associations between short-term exposure and attention score. Results were also stratified by age, gender, user behavior, and region.",
-          "<br><i>Results.</i> Daily and sub-daily PM<sub>2.5</sub> were negatively associated with attention score. A 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> in the 3 hours prior to gameplay was associated with a 21.0 [3.3, 38.7] point decrease in score. Same-day exposure was associated with an estimated average 4% reduction in 20th play score. Associations were more pronounced in the wildfire-impacted western US. Medium and heavy smoke density were also negatively associated with score. Heavy smoke density the day prior to gameplay was associated with a 117.0 [1.7, 232.3] point decrease in score relative to no smoke. Although differences between subgroups were not statistically significant, associations were most pronounced for younger (18-29), older (&#8805;70), habitual, and male users.", 
+          "<br><i>Results.</i> Daily and sub-daily PM<sub>2.5</sub> were negatively associated with attention score. A 10 &microg/m<sup>3</sup> increase in PM<sub>2.5</sub> in the 3 hours prior to gameplay was associated with a 21.0 [3.3, 38.7] point decrease in score. Exposure over 20 plays accounted for an estimated average 4% reduction in final score. Associations were more pronounced in the wildfire-impacted western US. Medium and heavy smoke density were also negatively associated with score. Heavy smoke density the day prior to gameplay was associated with a 117.0 [1.7, 232.3] point decrease in score relative to no smoke. Although differences between subgroups were not statistically significant, associations were most pronounced for younger (18-29), older (&#8805;70), habitual, and male users.", 
           "<br><i>Discussion.</i> Our results indicate that PM<sub>2.5</sub> and wildfire smoke are associated with reduced attention in adults within hours and days of exposure, but further research is needed to elucidate these relationships.",
           "<br><br>",
           "<b>Authors:</b> Stephanie E. Cleland, Lauren H. Wyatt, Linda Wei, Naman Paul, Marc L. Serre, J. Jason West, Sarah B. Henderson, Ana G. Rappold")
