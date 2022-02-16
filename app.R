@@ -9,8 +9,6 @@ library(tigris)
 library(dplyr)
 library(gridExtra)
 
-#rsconnect::setAccountInfo(name='ehs-bccdc', token='97AF057AFE004D437580E714778AAAA1', secret='kdTRe2jWo1rPRdeszOsLYinaZzRoYpLV72Us7mUu')
-
 # Data for Primary results
 primary <- data.table(readRDS("./data/primary_results_full.RDS"))
 cols <- c("Beta","Lower","Upper","# Users","P-Value")
