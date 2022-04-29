@@ -2,6 +2,7 @@
 library(shiny)
 library(shinydashboard)
 library(DT)
+library(shinyjs)
 library(data.table)
 library(ggplot2)
 library(forcats)
@@ -40,19 +41,12 @@ hist_data[hist_data$gender=="m"]$gender <- "Male"
 hist_data[hist_data$gender=="f"]$gender <- "Female"
 state_west <- c("WA","CA","OR","ID","NV","MT")
 
-header <- dashboardHeader(
-  title = span( 
-    HTML(paste0("Dashboard for 'Short-Term Exposure to Wildfire Smoke and PM",tags$sub("2.5"), " and Cognitive Performance in a Brain-Training Game: A Longitudinal Study of US Adults'")),
-    style = "position: absolute;left: 10px; font-weight: bold; font-size: 15px"
-  ),
-  titleWidth = "1600px"
-)
+header <- dashboardHeader()
 
 sidebar <- dashboardSidebar(
-  tags$script(JS("document.getElementsByClassName('sidebar-toggle')[0].style.visibility = 'hidden';")),
   sidebarMenu(
     menuItem("About",  tabName = "about", icon = icon("question-circle")),
-    menuItem("Primary Results", tabName = "primary", icon = icon("bar-chart"),selected=T),
+    menuItem("Primary Results", tabName = "primary", icon = icon("chart-bar"),selected=T),
     menuItem("Lumosity User Data", tabName = "lumosity", icon = icon("user")),
     menuItem("Exposure Surfaces", tabName = "exposure_surf", icon = icon("fire")),
     menuItem("Sensitivity Analyses", tabName = "sensitivity", icon = icon("table"))
@@ -62,8 +56,29 @@ sidebar <- dashboardSidebar(
 )
 
 body <-  dashboardBody(
-  tags$head(tags$style(".shiny-plot-output{height:50vh !important;}")),
-  tags$head(tags$style("#lumosity_plot{height:65vh !important;}")),
+  tags$style(".skin-black .main-header .navbar {background-color: white;}
+             .skin-black .main-header .logo {background-color: #222D32;}
+             .skin-black .main-header .logo:hover {background-color: #222D32;}"
+  ),
+  tags$head(tags$style(HTML(
+    '.myClass { 
+        font-size: 15px;
+        line-height: 50px;
+        text-align: left;
+        padding: 0 15px;
+        word-break: break-all;
+        text-overflow: ellipsis;
+        white-space:nowrap;
+        overflow: hidden;
+        display: inherit;
+        color: #1E282C;
+      }'
+  ))),
+  tags$script(HTML('
+      $(document).ready(function() {
+        $("header").find("nav").append(\'<span class="myClass">Dashboard for <q>Short-Term Exposure to Wildfire Smoke and PM<sub>2.5</sub> and Cognitive Performance in a Brain-Training Game: A Longitudinal Study of US Adults</q> </span>\');
+      })'
+  )),
   tabItems(
     tabItem(tabName = "primary",
             h2("Primary Results"),
@@ -85,7 +100,6 @@ body <-  dashboardBody(
                               htmlOutput("habit_def_hourly")
                      )
               ),
-              
               box(
                 title = "Options", status="info",solidHeader = TRUE,width = 4,
                 htmlOutput("primary_info_text"),
@@ -259,11 +273,15 @@ body <-  dashboardBody(
   
 )
 
-ui <- dashboardPage(shinyjs::useShinyjs(),
-                    skin = "black",header=header, sidebar=sidebar, body=body
+ui <- dashboardPage(shinyjs::useShinyjs(),skin='black',
+                    header=header, sidebar=sidebar, body=body
 )
 
 server <- function(input, output,session) { 
+  runjs('
+        var el2 = document.querySelector(".skin-black");
+        el2.className = "skin-black sidebar-mini";
+        ')
   
   ############## PRIMARY RESULTS #############################################
   observeEvent (input$exposure, {
@@ -309,7 +327,8 @@ server <- function(input, output,session) {
         xlab("")  + 
         theme( panel.grid.major.x = element_blank() ,
                panel.grid.major.y = element_line(size=.1, color="grey90" ),
-               panel.grid.minor.x = element_blank()) 
+               panel.grid.minor.x = element_blank(),
+               axis.text.x=element_text(angle=30,hjust=1)) 
       
       if (input$subgroup == "Age") {
         plot <- plot+ 
@@ -408,7 +427,8 @@ server <- function(input, output,session) {
         xlab("")  + 
         theme( panel.grid.major.x = element_blank() ,
                panel.grid.major.y = element_line(size=.1, color="grey90" ),
-               panel.grid.minor.x = element_blank()) 
+               panel.grid.minor.x = element_blank(),
+               axis.text.x=element_text(angle=30,hjust=1)) 
       
       if (input$subgroup == "Age") {
         plot <- plot+ 
@@ -471,7 +491,8 @@ server <- function(input, output,session) {
         xlab("")  + 
         theme(panel.grid.major.x = element_blank() ,
               panel.grid.major.y = element_line(size=.1, color="grey90" ),
-              panel.grid.minor.x = element_blank())
+              panel.grid.minor.x = element_blank(),
+              axis.text.x=element_text(angle=30,hjust=1))
       
       
       if (input$subgroup == "Age") {
@@ -882,6 +903,10 @@ server <- function(input, output,session) {
                    panel.grid.major.y = element_line(size=.1, color="grey90" ),
                    panel.grid.minor.x = element_blank())
           
+          if (input$analyses_sens != "Lags") {
+            plot <- plot + theme(axis.text.x=element_text(angle=30,hjust=1))
+          }
+          
           if (input$analyses_sens == "Habit") {
             ggplot(data=plot_data,
                    aes(x=ExposureDuration,y=Beta,ymin=Lower,ymax=Upper,
@@ -894,7 +919,8 @@ server <- function(input, output,session) {
               xlab("")  + 
               theme( panel.grid.major.x = element_blank() ,
                      panel.grid.major.y = element_line(size=.1, color="grey90" ),
-                     panel.grid.minor.x = element_blank()) + 
+                     panel.grid.minor.x = element_blank(),
+                     axis.text.x=element_text(angle=30,hjust=1)) + 
               scale_color_manual(name = "Habitual Definition",labels = c("7 days, 2 hours","7 days, 3 hours",
                                                                          "7 days, 4 hours","14 days, 2 hours"),
                                  values = c("black","#8A9045FF","#155F83FF","#C16622FF")) +
@@ -918,7 +944,7 @@ server <- function(input, output,session) {
           } else if (input$analyses_sens == "Lags") {
             plot + scale_color_manual(name = "# Lags Included", labels = c("1 Lag","2 Lags","3 Lags","4 Lags", "5 Lags","6 Lags","7 Lags"),
                                       values = c("#AE76A3","#5289C7","#90C987","#F1932D","#DC050C","#FFAABB","black")) +
-              scale_x_discrete(labels=c("Lag 0" = "Lag 0", "7-Day Cumulative" = "N-Day Cumulative"))
+              scale_x_discrete(labels=c("Lag 0" = "Lag 0", "7-Day Cumulative" = "N-Day Cumulative")) 
           } else if (input$analyses_sens == "ScorePctile") {
             plot + 
               facet_wrap(.~SpecificAnalysis,scales="free") + 
@@ -1476,7 +1502,7 @@ server <- function(input, output,session) {
           scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
                              labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u226570")) +
           scale_fill_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
-                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u226570")) 
+                            labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u226570")) 
       } else {
         plot <- plot +         
           scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2])) +
@@ -1507,7 +1533,7 @@ server <- function(input, output,session) {
           scale_color_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
                              labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u226570")) +
           scale_fill_manual(name="Group",values=(primary_palette[primary_palette$Group%in%unique(plot_data$var1),2]),
-                             labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u226570")) +
+                            labels = c((primary_palette[primary_palette$Group%in%unique(plot_data$var1),1])[1:5],"\u226570")) +
           facet_wrap(~var2) 
       } else if (input$subgroup_lum2=="Age") {
         supp.labs <- c("18-29", "30-39","40-49","50-59","60-69","\u226570")
